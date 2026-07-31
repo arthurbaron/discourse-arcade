@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" role="img" aria-label="Dribble">
+  <g opacity="0.14" fill="#808080">
+    <rect x="88" y="18" width="144" height="144" rx="6" />
+  </g>
+
+  <g opacity="0.3" stroke="#808080" stroke-width="1.5">
+    <path d="M92 46h136M92 78h136M92 110h136M92 142h136" />
+  </g>
+
+  <g fill="#d1594a">
+    <circle cx="122" cy="52" r="12" />
+    <circle cx="196" cy="52" r="12" />
+    <circle cx="140" cy="98" r="12" />
+    <circle cx="212" cy="98" r="12" />
+  </g>
+
+  <circle cx="176" cy="134" r="11" fill="#808080" />
+  <circle cx="176" cy="117" r="5" fill="#4a7fb5" />
+</svg>

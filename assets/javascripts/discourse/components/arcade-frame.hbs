@@ -1,0 +1,47 @@
+{{#if this.frameSrc}}
+  <iframe
+    class="arcade-frame-canvas"
+    src={{this.frameSrc}}
+    sandbox="allow-scripts"
+    title={{this.game.name}}
+    scrolling="no"
+  ></iframe>
+{{/if}}
+
+{{#if this.overlayVisible}}
+  <div class="arcade-frame-overlay">
+    {{#if (eq this.status "idle")}}
+      <button
+        class="btn btn-primary arcade-frame-start"
+        {{on "click" this.start}}
+      >
+        Play
+        {{this.game.name}}
+      </button>
+      <p class="arcade-frame-hint">Swipe, or use the arrow keys.</p>
+
+    {{else if (eq this.status "loading")}}
+      <p class="arcade-frame-status">Starting…</p>
+
+    {{else if (eq this.status "saving")}}
+      <p class="arcade-frame-status">Saving your score…</p>
+
+    {{else if (eq this.status "done")}}
+      <div class="arcade-frame-result">
+        {{#if this.error}}
+          <p class="arcade-frame-error">{{this.error}}</p>
+        {{else}}
+          <p class="arcade-frame-score">
+            {{this.lastScore}}
+            <span class="arcade-frame-unit">{{this.game.score_unit}}</span>
+          </p>
+          {{#if this.isPersonalBest}}
+            <p class="arcade-frame-badge">{{d-icon "trophy"}}
+              New personal best</p>
+          {{/if}}
+        {{/if}}
+        <button class="btn btn-primary" {{on "click" this.start}}>Play again</button>
+      </div>
+    {{/if}}
+  </div>
+{{/if}}

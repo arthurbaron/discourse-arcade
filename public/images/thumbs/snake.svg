@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" role="img" aria-label="Snake">
+  <g opacity="0.14" fill="#808080">
+    <rect x="96" y="26" width="128" height="128" rx="6" />
+  </g>
+  <g fill="#4a8f5b">
+    <rect x="104" y="106" width="20" height="20" rx="5" />
+    <rect x="126" y="106" width="20" height="20" rx="5" />
+    <rect x="148" y="106" width="20" height="20" rx="5" />
+    <rect x="148" y="84" width="20" height="20" rx="5" />
+    <rect x="148" y="62" width="20" height="20" rx="5" />
+    <rect x="170" y="62" width="20" height="20" rx="5" />
+  </g>
+  <rect x="192" y="62" width="20" height="20" rx="5" fill="#5aa86c" />
+  <circle cx="118" cy="52" r="9" fill="#d1594a" />
+</svg>

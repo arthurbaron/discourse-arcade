@@ -1,0 +1,82 @@
+<div class="arcade-game-page">
+  <div class="arcade-game-head">
+    <LinkTo @route="arcade.index" class="arcade-back">Back to the arcade</LinkTo>
+    <h1>{{this.game.name}}</h1>
+    {{#if this.game.tagline}}
+      <p class="arcade-game-tagline">{{this.game.tagline}}</p>
+    {{/if}}
+  </div>
+
+  <div class="arcade-game-layout">
+    <div class="arcade-game-main">
+      <ArcadeFrame
+        class="arcade-frame"
+        @game={{this.game}}
+        @onScore={{this.scoreSaved}}
+      />
+
+      <div class="arcade-stats">
+        <div class="arcade-stat">
+          <span class="arcade-stat-label">Your best</span>
+          <span class="arcade-stat-value">
+            {{if this.yourBest this.yourBest "-"}}
+          </span>
+        </div>
+        <div class="arcade-stat">
+          <span class="arcade-stat-label">Your rank</span>
+          <span class="arcade-stat-value">
+            {{if this.yourRank this.yourRank "-"}}
+          </span>
+        </div>
+        <div class="arcade-stat">
+          <span class="arcade-stat-label">Plays</span>
+          <span class="arcade-stat-value">{{this.game.plays_count}}</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="arcade-game-side">
+      <h2 class="arcade-side-title">{{d-icon "trophy"}} Leaderboard</h2>
+
+      {{#if this.recordToBeat}}
+        <p class="arcade-record-line">
+          Record to beat
+          <strong>{{this.recordToBeat.score}}</strong>
+          by
+          {{this.recordToBeat.username}}
+        </p>
+      {{/if}}
+
+      {{#if this.hasScores}}
+        <ol class="arcade-leaderboard">
+          {{#each this.leaderboard as |entry|}}
+            <li class="arcade-lb-row {{if entry.is_you 'is-you'}}">
+              <span class="arcade-lb-rank">{{entry.rank}}</span>
+              {{#if entry.avatar_url}}
+                <img
+                  class="arcade-avatar"
+                  src={{entry.avatar_url}}
+                  alt=""
+                  width="24"
+                  height="24"
+                />
+              {{/if}}
+              <span class="arcade-lb-name">{{entry.username}}</span>
+              <span class="arcade-lb-score">{{entry.score}}</span>
+              {{#if this.canModerate}}
+                <button
+                  type="button"
+                  class="arcade-lb-remove"
+                  title="Remove this score"
+                  {{on "click" (fn this.removeScore entry)}}
+                >×</button>
+              {{/if}}
+            </li>
+          {{/each}}
+        </ol>
+      {{else}}
+        <p class="arcade-empty">No scores yet. Be the first.</p>
+      {{/if}}
+    </aside>
+  </div>
+</div>

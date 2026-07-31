@@ -1,0 +1,24 @@
+plugins:
+  arcade_enabled:
+    client: true
+    default: true
+    type: bool
+
+  # How many runs a single user may start per hour. Caps score-spamming.
+  arcade_max_runs_per_hour:
+    default: 60
+    min: 1
+    max: 1000
+
+  # A run token stops being redeemable after this many minutes.
+  arcade_run_token_ttl_minutes:
+    default: 180
+    min: 5
+    max: 1440
+
+  # How many entries a game leaderboard shows.
+  arcade_leaderboard_size:
+    client: true
+    default: 10
+    min: 3
+    max: 100

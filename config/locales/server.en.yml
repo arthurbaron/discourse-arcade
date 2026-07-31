@@ -1,0 +1,6 @@
+en:
+  site_settings:
+    arcade_enabled: "Enable the arcade at /arcade."
+    arcade_max_runs_per_hour: "How many games a single account may start per hour. Caps score spamming."
+    arcade_run_token_ttl_minutes: "How long a started game stays redeemable for a score, in minutes."
+    arcade_leaderboard_size: "How many players a game leaderboard shows."

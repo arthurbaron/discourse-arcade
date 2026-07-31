@@ -1,0 +1,102 @@
+/* Shared shell for arcade games we write ourselves.
+   The host frame is square, so the stage is a square that fits whatever shape
+   it actually gets. Colours come from the host through the query string. */
+
+:root {
+  --bg: #ffffff;
+  --fg: #222222;
+  --muted: #8f8f8f;
+  --low: #e9e9e9;
+  --accent: #0088cc;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  user-select: none;
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2%;
+  padding: 2.5%;
+}
+
+#bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1em;
+  flex: none;
+}
+
+#score-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+#score {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+#hint {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+#stage {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(100%, 80vmin);
+  aspect-ratio: 1 / 1;
+  margin: auto;
+  border-radius: 6px;
+  background: var(--low);
+  touch-action: none;
+  overflow: hidden;
+}
+
+#stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#over {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
+  background: rgba(127, 127, 127, 0.35);
+  backdrop-filter: blur(2px);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--fg);
+  text-align: center;
+}
+
+#over.visible {
+  display: flex;
+}

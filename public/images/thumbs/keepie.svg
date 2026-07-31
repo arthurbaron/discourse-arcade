@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" role="img" aria-label="Keepie Uppie">
+  <g opacity="0.14" fill="#808080">
+    <rect x="88" y="18" width="144" height="144" rx="6" />
+  </g>
+
+  <path d="M96 146h128" stroke="#808080" stroke-width="2.5" opacity="0.5" />
+
+  <g opacity="0.22" fill="#808080">
+    <ellipse cx="160" cy="146" rx="17" ry="4.5" />
+  </g>
+
+  <g opacity="0.4" stroke="#4a7fb5" stroke-width="2" fill="none">
+    <circle cx="160" cy="86" r="26" stroke-dasharray="5 5" />
+  </g>
+
+  <circle cx="160" cy="86" r="16" fill="#808080" />
+  <circle cx="154" cy="80" r="5" fill="#dcdcdc" opacity="0.85" />
+</svg>
