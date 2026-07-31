@@ -9,7 +9,10 @@
 enabled_site_setting :arcade_enabled
 
 register_asset "stylesheets/arcade.css"
-register_svg_icon "trophy"
+
+# The trophy belongs to Bookie, so the arcade gets its own mark.
+register_svg_icon "gamepad"
+register_svg_icon "star"
 
 after_initialize do
   [

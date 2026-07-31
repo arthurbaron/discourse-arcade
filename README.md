@@ -122,6 +122,32 @@ as cheating pays out coins, the incentive to cheat gets a lot stronger.
 | `arcade_run_token_ttl_minutes` | 180 | How long a run stays redeemable |
 | `arcade_leaderboard_size` | 10 | Rows on a game leaderboard |
 
+## Discourse version notes
+
+Written against 3.2-era plugin conventions, and verified working on
+`v2026.8.0-latest`: `.hbs` route templates and colocated component templates
+under `assets/javascripts` are still compiled automatically, and classic
+`@ember/component`, `*-route-map.js`, plugin `controllers/`, `{{eq}}`,
+`inject as service`, `ajax` and `dialog.yesNoConfirm` all still resolve.
+
+Two deliberate choices come out of that:
+
+- Icons use `{{fa-icon "…"}}` rather than `{{d-icon}}`. Current Discourse
+  has no ambient `d-icon` helper, only an importable one for `.gjs`, and an
+  unresolved helper in a classic template takes the whole page down rather than
+  just dropping the glyph. `fa-icon` exists in both old and current Discourse
+  and renders the same sprite with the same `d-icon` CSS classes. It logs a
+  deprecation warning in the console, which is the price of one file working
+  across both.
+- The frontend is not `.gjs`. Discourse's own plugins have moved over, and a
+  future port would drop the deprecation and let icons and truth helpers be
+  imported properly. Around seven files: the three route templates, the frame
+  component, and the nesting of the route and controller files. The Ruby side,
+  the data model, the stylesheet and all six games are unaffected.
+
+The arcade uses `gamepad` for its own heading and `star` for a new personal
+best. The trophy is Bookie's mark and is deliberately left alone.
+
 ## Known limits
 
 - The frame is a fixed 1:1 aspect ratio. A game needing another shape needs an
