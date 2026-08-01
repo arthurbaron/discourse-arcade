@@ -10,10 +10,9 @@ enabled_site_setting :arcade_enabled
 
 register_asset "stylesheets/arcade.css"
 
-# Bookie owns the trophy on its own pages, so the arcade uses a gamepad for its
-# heading and a star for a personal best. The trophy comes back for the record
-# flair next to a poster's name, where it means what it looks like.
-register_svg_icon "gamepad"
+# The arcade heading uses a real emoji, matching Bookie, so no icon is needed
+# for it. A star marks a personal best, and the trophy is for the record flair
+# next to a poster's name.
 register_svg_icon "star"
 register_svg_icon "trophy"
 

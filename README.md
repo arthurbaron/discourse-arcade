@@ -173,23 +173,32 @@ under `assets/javascripts` are still compiled automatically, and classic
 `@ember/component`, `*-route-map.js`, plugin `controllers/`, `{{eq}}`,
 `inject as service`, `ajax` and `dialog.yesNoConfirm` all still resolve.
 
-Two deliberate choices come out of that:
+`{{d-icon}}` works in a plugin `.hbs` on both versions. That is worth stating
+because it is easy to conclude otherwise: current Discourse has no
+`app/helpers/d-icon.js` and none of its own shipped `.hbs` templates use the
+helper, since they have all moved to `.gjs` and import it. Neither fact means the
+ambient helper is gone. `discourse-bookie` uses `{{d-icon}}` in six places and
+runs fine on `v2026.8.0-latest`. Absence of use is not absence of support, and
+`{{fa-icon}}` is only a deprecated alias for the same thing.
 
-- Icons use `{{fa-icon "…"}}` rather than `{{d-icon}}`. Current Discourse
-  has no ambient `d-icon` helper, only an importable one for `.gjs`, and an
-  unresolved helper in a classic template takes the whole page down rather than
-  just dropping the glyph. `fa-icon` exists in both old and current Discourse
-  and renders the same sprite with the same `d-icon` CSS classes. It logs a
-  deprecation warning in the console, which is the price of one file working
-  across both.
+Two smaller notes on running the linters from `~/discourse-next`: eslint there
+reports the classic component in `arcade-frame.js`, and rubocop there wants
+newer fabricator shorthand in the specs. Both are deliberate. The shorthand in
+particular would break every spec on the older checkout, which still runs this
+plugin locally, for the sake of a style cop.
+
+One deliberate choice remains:
+
 - The frontend is not `.gjs`. Discourse's own plugins have moved over, and a
   future port would drop the deprecation and let icons and truth helpers be
   imported properly. Around seven files: the three route templates, the frame
   component, and the nesting of the route and controller files. The Ruby side,
   the data model, the stylesheet and all six games are unaffected.
 
-The arcade uses `gamepad` for its own heading and `star` for a new personal
-best. The trophy is Bookie's mark and is deliberately left alone.
+The arcade heading uses a real 🎮 emoji rather than a sprite icon, to match
+Bookie's 🏆 heading. That means it renders in each platform's own emoji font, so
+it looks slightly different per device: the cost of matching Bookie. A `star`
+marks a new personal best, and the trophy is the record flair.
 
 ## Known limits
 

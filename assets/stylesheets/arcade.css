@@ -17,10 +17,12 @@
   font-size: 1.6em;
 }
 
-.arcade h1 .d-icon {
-  color: var(--tertiary);
-  width: 0.9em;
-  height: 0.9em;
+/* The heading uses a real emoji, so it takes its colour from the glyph itself
+   and only needs sizing. Note this renders in each platform's own emoji font,
+   so it looks slightly different on a Mac, a PC and an Android phone. */
+.arcade-head-emoji {
+  font-size: 0.95em;
+  line-height: 1;
 }
 
 .arcade-head {

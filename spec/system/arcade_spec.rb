@@ -28,9 +28,7 @@ RSpec.describe "Arcade", type: :system do
 
     expect(page).to have_css(".arcade-index")
 
-    # The icon has to actually resolve to a sprite symbol. A name FontAwesome
-    # has dropped renders an empty box rather than failing loudly.
-    expect(page).to have_css(".arcade-head h1 svg.d-icon-gamepad")
+    expect(find(".arcade-head h1")).to have_text("🎮")
 
     expect(page).to have_css(".arcade-card", count: 1)
     expect(page).to have_content("Test Game")
