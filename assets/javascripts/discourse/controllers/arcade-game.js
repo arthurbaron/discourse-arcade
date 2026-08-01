@@ -39,6 +39,11 @@ export default class ArcadeGameController extends Controller {
     this.leaderboard = payload.leaderboard || this.leaderboard;
     this.yourBest = payload.your_best;
     this.yourRank = payload.your_rank;
+
+    // Replaced rather than mutated, so the template picks the new count up.
+    if (payload.plays_count !== undefined) {
+      this.game = { ...this.game, plays_count: payload.plays_count };
+    }
   }
 
   @action

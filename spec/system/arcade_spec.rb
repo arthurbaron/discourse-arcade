@@ -78,6 +78,10 @@ RSpec.describe "Arcade", type: :system do
     expect(page).to have_css(".arcade-frame-badge svg.d-icon-star")
     expect(page).to have_css(".arcade-lb-row.is-you")
 
+    # The plays stat was rendered before the run, so it has to be refreshed or
+    # it reads zero next to a score that just landed.
+    expect(find(".arcade-stats")).to have_text("1")
+
     score = ArcadeScore.find_by(user_id: player.id, arcade_game_id: game.id)
     expect(score).to be_present
     expect(score.score).to be > 0

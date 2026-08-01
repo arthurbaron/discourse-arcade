@@ -106,6 +106,9 @@ class ArcadeController < ApplicationController
              is_personal_best: personal_best&.id == score.id,
              your_best: personal_best&.score,
              your_rank: game.rank_for(current_user.id),
+             # The page loaded its count before this run, so send the new one or
+             # the stat sits there reading zero next to a score that just landed.
+             plays_count: game.plays_count,
              leaderboard: serialize_leaderboard(game),
            }
   end
