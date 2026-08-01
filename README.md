@@ -26,8 +26,9 @@ bin/rake arcade:seed
 | `penalty` | goals | click or drag anywhere in the goal |
 | `keepie` | touches | tap the ball |
 | `dribble` | metres | slide to steer, arrows |
+| `holdtheline` | points | slide to move, arrows; fire is automatic |
 
-All six are built for a square frame.
+All seven are built for a square frame.
 
 ## Adding a game
 

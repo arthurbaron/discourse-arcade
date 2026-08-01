@@ -77,6 +77,18 @@ ARCADE_GAMES = [
     min_run_seconds: 3,
     position: 6,
   },
+  {
+    slug: "holdtheline",
+    name: "Hold the Line",
+    tagline: "Thin out the formation before it reaches you.",
+    entry_path: "holdtheline/index.html",
+    thumbnail: "holdtheline.svg",
+    score_direction: "high",
+    score_unit: "points",
+    max_plausible_score: 200_000,
+    min_run_seconds: 5,
+    position: 7,
+  },
 ].freeze
 
 desc "Create or update the arcade game catalogue"
