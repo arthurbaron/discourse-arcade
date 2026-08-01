@@ -23,7 +23,7 @@ bin/rake arcade:seed
 | `2048` | points | swipe, arrows, WASD |
 | `snake` | points | swipe, arrows, WASD |
 | `breakout` | points | drag anywhere, arrows |
-| `penalty` | goals | drag from the ball to aim and shoot |
+| `penalty` | goals | click or drag anywhere in the goal |
 | `keepie` | touches | tap the ball |
 | `dribble` | metres | slide to steer, arrows |
 
@@ -55,10 +55,12 @@ game.
 
 ### Test hooks
 
-Three games expose a small read-only object so a spec can check the thing that
+Some games expose a small read-only object so a spec can check the thing that
 "it ends and reports a score" cannot: `window.Game2048.collapse` for the merge
-rules, `window.Keepie.state()` to tap the ball accurately, and
-`window.Dribble.buildRow` to prove every row leaves a passable gap.
+rules, `window.Keepie.state()` to tap the ball accurately,
+`window.Dribble.buildRow` to prove every row leaves a passable gap, and
+`window.Penalty.state()` for the keeper's position and the outcome of a shot,
+which is drawn on the canvas and so invisible to a spec otherwise.
 
 These read state or generate a row; none of them set a score. A player already
 has the whole game in front of them in view-source, and scores are validated
@@ -206,6 +208,35 @@ The arcade heading uses a real 🎮 emoji rather than a sprite icon, to match
 Bookie's 🏆 heading. That means it renders in each platform's own emoji font, so
 it looks slightly different per device: the cost of matching Bookie. A `star`
 marks a new personal best, and the trophy is the record flair.
+
+## Penalty, and tuning by measurement
+
+The keeper is the whole game, and the first version got it wrong in a way no
+spec caught: he stood on the goal line and only moved sideways, so his hitbox
+covered the bottom half of the goal and nothing else. Either top corner was a
+certain goal. On a desktop you could click the same spot every time and never
+miss.
+
+He now dives in both axes towards the ball, from wherever the patrol has left
+him, and how far he gets in the remaining flight time decides it. Shot accuracy
+also falls off the further from the middle you aim, so a corner is ambitious
+rather than free.
+
+The numbers came from measuring rather than guessing, with a throwaway spec that
+fired shots and counted outcomes. Worth repeating that way if the balance ever
+needs revisiting, because two rounds of tuning by feel were both wrong: the
+first left corners at 78% and the second made the keeper unbeatable. Where it
+landed, at the start of a run:
+
+| Shot | Goals |
+| --- | --- |
+| Top corner, no attention to the keeper | ~20% |
+| Top corner, taken while he is at the far post | ~70% |
+| Straight down the middle | ~0% |
+
+Roughly 15% of corner attempts miss the target altogether, which is the price of
+aiming there. `penalty_keeper_spec.rb` pins the two things that must stay true:
+he leaves the ground for a high shot, and a shot straight at him is saved.
 
 ## Known limits
 
