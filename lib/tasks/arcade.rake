@@ -3,6 +3,11 @@
 # The catalogue lives here rather than in an admin screen: adding a game means
 # shipping its files, so it is a deploy anyway. Re-running this task updates
 # metadata in place and never touches existing scores.
+#
+# min_run_seconds is the shortest a run can be and still have put points on the
+# board, so it only ever applies to a score above zero. The first values here
+# were guesses several times too high, which rejected ordinary play and told
+# people their scores were fake.
 ARCADE_GAMES = [
   {
     slug: "2048",
@@ -13,7 +18,7 @@ ARCADE_GAMES = [
     score_direction: "high",
     score_unit: "points",
     max_plausible_score: 400_000,
-    min_run_seconds: 5,
+    min_run_seconds: 2,
     position: 1,
   },
   {
@@ -26,7 +31,7 @@ ARCADE_GAMES = [
     score_unit: "points",
     # A perfect board is 321 pieces of food at 10 points each.
     max_plausible_score: 4_000,
-    min_run_seconds: 3,
+    min_run_seconds: 1,
     position: 2,
   },
   {
@@ -38,7 +43,7 @@ ARCADE_GAMES = [
     score_direction: "high",
     score_unit: "points",
     max_plausible_score: 100_000,
-    min_run_seconds: 5,
+    min_run_seconds: 2,
     position: 3,
   },
   {
@@ -50,7 +55,7 @@ ARCADE_GAMES = [
     score_direction: "high",
     score_unit: "goals",
     max_plausible_score: 500,
-    min_run_seconds: 3,
+    min_run_seconds: 2,
     position: 4,
   },
   {
@@ -62,7 +67,7 @@ ARCADE_GAMES = [
     score_direction: "high",
     score_unit: "touches",
     max_plausible_score: 2_000,
-    min_run_seconds: 3,
+    min_run_seconds: 1,
     position: 5,
   },
   {
@@ -74,7 +79,7 @@ ARCADE_GAMES = [
     score_direction: "high",
     score_unit: "metres",
     max_plausible_score: 100_000,
-    min_run_seconds: 3,
+    min_run_seconds: 1,
     position: 6,
   },
   {
@@ -86,7 +91,7 @@ ARCADE_GAMES = [
     score_direction: "high",
     score_unit: "points",
     max_plausible_score: 200_000,
-    min_run_seconds: 5,
+    min_run_seconds: 2,
     position: 7,
   },
 ].freeze

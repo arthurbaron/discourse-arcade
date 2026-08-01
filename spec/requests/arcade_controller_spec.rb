@@ -159,13 +159,26 @@ RSpec.describe ArcadeController do
       expect(response.parsed_body["error"]).to match(/whole number/)
     end
 
-    it "refuses a run that finished faster than the game allows" do
+    it "refuses a score that arrived faster than the game allows" do
       game.update!(min_run_seconds: 30)
       token = start_run(as: player)
       submit(token, 500)
 
       expect(response.status).to eq(422)
-      expect(response.parsed_body["error"]).to match(/too short/)
+      expect(response.parsed_body["error"]).to match(/quicker than the game allows/)
+    end
+
+    # Several games end legitimately in about a second, and a run that scored
+    # nothing has nothing to fake. Rejecting those threw real play away and
+    # accused the player of forging it.
+    it "accepts a scoreless run however quick it was" do
+      game.update!(min_run_seconds: 30)
+      token = start_run(as: player)
+      submit(token, 0)
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body["score"]).to eq(0)
+      expect(ArcadeScore.count).to eq(1)
     end
 
     it "refuses an expired token" do
