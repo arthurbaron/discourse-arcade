@@ -116,6 +116,7 @@ class ArcadeController < ApplicationController
 
     score = ArcadeScore.find(params[:id])
     score.reject!(reason: params[:reason].presence || "Removed by staff", moderator: current_user)
+    ArcadeRecordHolders.clear!
 
     render json: { success: true, leaderboard: serialize_leaderboard(score.arcade_game) }
   end

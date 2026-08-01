@@ -122,6 +122,49 @@ as cheating pays out coins, the incentive to cheat gets a lot stronger.
 | `arcade_run_token_ttl_minutes` | 180 | How long a run stays redeemable |
 | `arcade_leaderboard_size` | 10 | Rows on a game leaderboard |
 
+## Record flair
+
+With `arcade_show_record_flair` on, anyone currently holding first place on a
+game gets a trophy and a count next to their name on every post, linking to
+`/arcade`, with the games named in the tooltip.
+
+The count is one glyph plus a number rather than one glyph per record: the post
+header is already a full line, and a fixed width keeps it from pushing the
+timestamp around on a phone.
+
+`ArcadeRecordHolders` is what makes this cheap. The set of record holders is
+tiny and global, at most one person per game forum-wide, so it is built once,
+cached, and every post does a hash lookup instead of a query. The cache is
+cleared when a score is submitted, when a score is removed, and when a game is
+saved. The serializer leaves the field off the post entirely for anyone holding
+nothing, so almost every post carries nothing extra.
+
+**The setting is off by default.** It renders on every post, so it gets switched
+on deliberately and can be switched straight back off from admin without a
+rebuild.
+
+**This feature needs current Discourse.** It renders through the
+`post-meta-data-poster-name` plugin outlet, which does not exist in the 3.2-era
+checkout, so `spec/system/record_flair_spec.rb` fails there. Everything else in
+the plugin still passes on both. Run the suite against current Discourse from
+`~/discourse-next`:
+
+```bash
+PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH" LOAD_PLUGINS=1 \
+  RAILS_DB=discourse_next_test bin/rspec plugins/discourse-arcade/spec
+```
+
+Two things must be rebuilt there after editing frontend files, and forgetting
+either one looks exactly like broken code: `rake assets:precompile:build_plugins`
+after JS or `.gjs` changes, and `rake assets:precompile:css` after stylesheet
+changes.
+
+One trap worth remembering: `post-meta-data-poster-name` is a *wrapper* outlet.
+`renderInOutlet` replaces its content, which silently removes the username from
+every post on the forum. Use `renderAfterWrapperOutlet`. The spec asserts both
+usernames are still on the page, because a spec that only checks the flair
+appeared passes happily while the names are gone.
+
 ## Discourse version notes
 
 Written against 3.2-era plugin conventions, and verified working on

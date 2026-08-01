@@ -4,3 +4,4 @@ en:
     arcade_max_runs_per_hour: "How many games a single account may start per hour. Caps score spamming."
     arcade_run_token_ttl_minutes: "How long a started game stays redeemable for a score, in minutes."
     arcade_leaderboard_size: "How many players a game leaderboard shows."
+    arcade_show_record_flair: "Show a trophy and a count next to the name of anyone currently holding first place on a game. This renders on every post."

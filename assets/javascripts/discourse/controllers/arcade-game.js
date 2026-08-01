@@ -1,6 +1,9 @@
 import { tracked } from "@glimmer/tracking";
 import Controller from "@ember/controller";
 import { action } from "@ember/object";
+// The older local checkout runs ember-source 3.28, which has no named `service`
+// export. Switch this over when that checkout is retired.
+// eslint-disable-next-line discourse/service-inject-import
 import { inject as service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";

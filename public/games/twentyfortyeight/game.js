@@ -10,28 +10,28 @@
 (function () {
   "use strict";
 
-  var SIZE = 4;
-  var SWIPE_THRESHOLD = 24;
+  let SIZE = 4;
+  let SWIPE_THRESHOLD = 24;
 
-  var boardEl = document.getElementById("board");
-  var scoreEl = document.getElementById("score");
-  var overEl = document.getElementById("over");
+  let boardEl = document.getElementById("board");
+  let scoreEl = document.getElementById("score");
+  let overEl = document.getElementById("over");
 
-  var grid = [];
-  var cells = [];
-  var score = 0;
-  var finished = false;
+  let grid = [];
+  let cells = [];
+  let score = 0;
+  let finished = false;
 
   // ── Theme ────────────────────────────────────────────────
   // The host passes its colour scheme in the query string. Values are
   // validated so the URL cannot inject arbitrary CSS.
   function applyTheme() {
-    var params = new URLSearchParams(location.search);
-    var safe =
+    let params = new URLSearchParams(location.search);
+    let safe =
       /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%/]+\)|hsla?\([\d\s.,%/]+\))$/i;
 
     ["bg", "fg", "accent", "muted", "low"].forEach(function (key) {
-      var value = (params.get(key) || "").trim();
+      let value = (params.get(key) || "").trim();
       if (value && safe.test(value)) {
         document.documentElement.style.setProperty("--" + key, value);
       }
@@ -41,8 +41,8 @@
   // ── Board helpers ────────────────────────────────────────
 
   function buildCells() {
-    for (var i = 0; i < SIZE * SIZE; i++) {
-      var el = document.createElement("div");
+    for (let i = 0; i < SIZE * SIZE; i++) {
+      let el = document.createElement("div");
       el.className = "cell";
       el.dataset.v = "0";
       boardEl.appendChild(el);
@@ -53,8 +53,8 @@
   }
 
   function emptyIndexes() {
-    var out = [];
-    for (var i = 0; i < grid.length; i++) {
+    let out = [];
+    for (let i = 0; i < grid.length; i++) {
       if (grid[i] === 0) {
         out.push(i);
       }
@@ -63,20 +63,20 @@
   }
 
   function addTile() {
-    var free = emptyIndexes();
+    let free = emptyIndexes();
     if (!free.length) {
       return;
     }
-    var index = free[Math.floor(Math.random() * free.length)];
+    let index = free[Math.floor(Math.random() * free.length)];
     grid[index] = Math.random() < 0.9 ? 2 : 4;
   }
 
   // Index order per line, "first" meaning closest to the swipe direction.
   function linesFor(dir) {
-    var lines = [];
-    for (var i = 0; i < SIZE; i++) {
-      var line = [];
-      for (var j = 0; j < SIZE; j++) {
+    let lines = [];
+    for (let i = 0; i < SIZE; i++) {
+      let line = [];
+      for (let j = 0; j < SIZE; j++) {
         if (dir === "left") {
           line.push(i * SIZE + j);
         } else if (dir === "right") {
@@ -94,15 +94,15 @@
 
   // Slide everything to the front, merging equal neighbours once each.
   function collapse(values) {
-    var nums = values.filter(function (v) {
+    let nums = values.filter(function (v) {
       return v !== 0;
     });
-    var out = [];
-    var gained = 0;
+    let out = [];
+    let gained = 0;
 
-    for (var i = 0; i < nums.length; i++) {
+    for (let i = 0; i < nums.length; i++) {
       if (i + 1 < nums.length && nums[i] === nums[i + 1]) {
-        var merged = nums[i] * 2;
+        let merged = nums[i] * 2;
         out.push(merged);
         gained += merged;
         i++;
@@ -115,7 +115,7 @@
       out.push(0);
     }
 
-    return { out: out, gained: gained };
+    return { out, gained };
   }
 
   function hasMoves() {
@@ -123,9 +123,9 @@
       return true;
     }
 
-    for (var r = 0; r < SIZE; r++) {
-      for (var c = 0; c < SIZE; c++) {
-        var v = grid[r * SIZE + c];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        let v = grid[r * SIZE + c];
         if (c + 1 < SIZE && grid[r * SIZE + c + 1] === v) {
           return true;
         }
@@ -143,16 +143,16 @@
       return;
     }
 
-    var moved = false;
-    var gained = 0;
+    let moved = false;
+    let gained = 0;
 
     linesFor(dir).forEach(function (line) {
-      var before = line.map(function (index) {
+      let before = line.map(function (index) {
         return grid[index];
       });
-      var result = collapse(before);
+      let result = collapse(before);
 
-      for (var k = 0; k < SIZE; k++) {
+      for (let k = 0; k < SIZE; k++) {
         if (grid[line[k]] !== result.out[k]) {
           moved = true;
         }
@@ -176,9 +176,9 @@
   }
 
   function render() {
-    for (var i = 0; i < cells.length; i++) {
-      var value = grid[i];
-      var el = cells[i];
+    for (let i = 0; i < cells.length; i++) {
+      let value = grid[i];
+      let el = cells[i];
 
       el.dataset.v = String(value);
       el.textContent = value === 0 ? "" : String(value);
@@ -198,12 +198,12 @@
   function endGame() {
     finished = true;
     overEl.classList.add("visible");
-    post({ type: "arcade:score", score: score });
+    post({ type: "arcade:score", score });
   }
 
   // ── Input ────────────────────────────────────────────────
 
-  var KEYS = {
+  let KEYS = {
     ArrowLeft: "left",
     ArrowRight: "right",
     ArrowUp: "up",
@@ -216,7 +216,7 @@
 
   function bindInput() {
     window.addEventListener("keydown", function (event) {
-      var dir = KEYS[event.key];
+      let dir = KEYS[event.key];
       if (!dir) {
         return;
       }
@@ -224,14 +224,14 @@
       move(dir);
     });
 
-    var startX = 0;
-    var startY = 0;
-    var tracking = false;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
 
     boardEl.addEventListener(
       "touchstart",
       function (event) {
-        var touch = event.touches[0];
+        let touch = event.touches[0];
         startX = touch.clientX;
         startY = touch.clientY;
         tracking = true;
@@ -256,11 +256,11 @@
       }
       tracking = false;
 
-      var touch = event.changedTouches[0];
-      var dx = touch.clientX - startX;
-      var dy = touch.clientY - startY;
-      var absX = Math.abs(dx);
-      var absY = Math.abs(dy);
+      let touch = event.changedTouches[0];
+      let dx = touch.clientX - startX;
+      let dy = touch.clientY - startY;
+      let absX = Math.abs(dx);
+      let absY = Math.abs(dy);
 
       if (Math.max(absX, absY) < SWIPE_THRESHOLD) {
         return;
@@ -289,7 +289,7 @@
   // Exposed so the rule specs can check the merge logic directly. It is a pure
   // function and scores are validated server side anyway, so this hands a
   // player nothing they could not already read in this file.
-  window.Game2048 = { collapse: collapse, SIZE: SIZE };
+  window.Game2048 = { collapse, SIZE };
 
   post({ type: "arcade:ready" });
 })();

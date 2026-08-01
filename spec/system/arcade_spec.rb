@@ -70,7 +70,10 @@ RSpec.describe "Arcade", type: :system do
       JS
     end
 
-    expect(page).to have_css(".arcade-frame-score")
+    # The score goes out over postMessage and then to the server before this
+    # appears, so it needs more room than the default wait when the whole suite
+    # is competing for the machine.
+    expect(page).to have_css(".arcade-frame-score", wait: 20)
     expect(page).to have_button("Play again")
 
     # A first score is always a personal best, so the badge and its star show.

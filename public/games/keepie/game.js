@@ -7,55 +7,55 @@
 (function () {
   "use strict";
 
-  var A = window.Arcade;
+  let A = window.Arcade;
 
-  var STEP_MS = 16;
+  let STEP_MS = 16;
 
-  var GROUND_Y = 0.94;
-  var BALL_R_START = 0.055;
-  var BALL_R_MIN = 0.032;
-  var SHRINK_OVER = 40; // touches to reach the smallest ball
+  let GROUND_Y = 0.94;
+  let BALL_R_START = 0.055;
+  let BALL_R_MIN = 0.032;
+  let SHRINK_OVER = 40; // touches to reach the smallest ball
 
-  var GRAVITY_BASE = 0.00085;
-  var GRAVITY_MAX_FACTOR = 2.2;
-  var KICK = 0.0235;
-  var AIM_STRENGTH = 0.14;
-  var MAX_VX = 0.014;
+  let GRAVITY_BASE = 0.00085;
+  let GRAVITY_MAX_FACTOR = 2.2;
+  let KICK = 0.0235;
+  let AIM_STRENGTH = 0.14;
+  let MAX_VX = 0.014;
 
-  var WALL_DAMPING = 0.9;
-  var CEILING_DAMPING = 0.6;
+  let WALL_DAMPING = 0.9;
+  let CEILING_DAMPING = 0.6;
 
   // A tap this much wider than the ball still counts, so a moving target stays
   // fair on a phone.
-  var HIT_SLACK = 1.7;
-  var COOLDOWN_STEPS = 5;
-  var FLASH_STEPS = 9;
+  let HIT_SLACK = 1.7;
+  let COOLDOWN_STEPS = 5;
+  let FLASH_STEPS = 9;
 
-  var stage = document.getElementById("stage");
-  var view = A.canvas(document.getElementById("view"));
-  var scoreEl = document.getElementById("score");
-  var overEl = document.getElementById("over");
+  let stage = document.getElementById("stage");
+  let view = A.canvas(document.getElementById("view"));
+  let scoreEl = document.getElementById("score");
+  let overEl = document.getElementById("over");
 
   // Opens as if the ball was just kicked up, so the first touch has the same
   // rhythm as every touch after it. Dropping it from a height instead would
   // make the opening the fastest moment of the whole run.
-  var ball = { x: 0.5, y: 0.6, vx: 0.002, vy: -KICK };
-  var touches = 0;
-  var cooldown = 0;
-  var flash = null;
-  var alive = true;
+  let ball = { x: 0.5, y: 0.6, vx: 0.002, vy: -KICK };
+  let touches = 0;
+  let cooldown = 0;
+  let flash = null;
+  let alive = true;
 
   function size() {
     return Math.min(view.w, view.h);
   }
 
   function ballRadius() {
-    var t = Math.min(1, touches / SHRINK_OVER);
+    let t = Math.min(1, touches / SHRINK_OVER);
     return BALL_R_START + (BALL_R_MIN - BALL_R_START) * t;
   }
 
   function gravity() {
-    var factor = Math.min(GRAVITY_MAX_FACTOR, 1 + touches * 0.02);
+    let factor = Math.min(GRAVITY_MAX_FACTOR, 1 + touches * 0.02);
     return GRAVITY_BASE * factor;
   }
 
@@ -74,11 +74,11 @@
       return;
     }
 
-    var s = size();
-    var tap = { x: point.x / s, y: point.y / s };
-    var r = ballRadius();
-    var dx = tap.x - ball.x;
-    var dy = tap.y - ball.y;
+    let s = size();
+    let tap = { x: point.x / s, y: point.y / s };
+    let r = ballRadius();
+    let dx = tap.x - ball.x;
+    let dy = tap.y - ball.y;
 
     if (Math.hypot(dx, dy) > r * HIT_SLACK) {
       return;
@@ -110,7 +110,7 @@
       }
     }
 
-    var r = ballRadius();
+    let r = ballRadius();
 
     ball.vy += gravity();
     ball.x += ball.vx;
@@ -136,9 +136,9 @@
   }
 
   function draw() {
-    var ctx = view.ctx;
-    var s = size();
-    var r = ballRadius();
+    let ctx = view.ctx;
+    let s = size();
+    let r = ballRadius();
 
     ctx.clearRect(0, 0, view.w, view.h);
     ctx.fillStyle = A.theme.low;
@@ -157,7 +157,7 @@
 
     // Shadow. How tight and dark it is says how close the ball is to the
     // ground, which is what makes the timing readable.
-    var height = clamp((GROUND_Y - ball.y) / GROUND_Y, 0, 1);
+    let height = clamp((GROUND_Y - ball.y) / GROUND_Y, 0, 1);
     ctx.save();
     ctx.globalAlpha = 0.05 + (1 - height) * 0.22;
     ctx.fillStyle = A.theme.fg;
@@ -176,7 +176,7 @@
 
     // Kick flash
     if (flash) {
-      var t = flash.life / FLASH_STEPS;
+      let t = flash.life / FLASH_STEPS;
       ctx.save();
       ctx.globalAlpha = t * 0.6;
       ctx.strokeStyle = A.theme.accent;
@@ -197,7 +197,7 @@
     ctx.save();
     ctx.globalAlpha = 0.55;
     ctx.fillStyle = A.theme.low;
-    var panelShift = clamp(-ball.vx * 5, -r * 0.45, r * 0.45);
+    let panelShift = clamp(-ball.vx * 5, -r * 0.45, r * 0.45);
     ctx.beginPath();
     ctx.arc(
       (ball.x + panelShift) * s,
@@ -221,8 +221,8 @@
         vy: ball.vy,
         r: ballRadius(),
         slack: HIT_SLACK,
-        touches: touches,
-        alive: alive,
+        touches,
+        alive,
         ground: GROUND_Y,
       };
     },

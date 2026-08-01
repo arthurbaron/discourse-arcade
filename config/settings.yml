@@ -16,6 +16,14 @@ plugins:
     min: 5
     max: 1440
 
+  # Shows a trophy and a count next to the name of anyone holding a record.
+  # Off by default: it renders on every post, so it gets switched on once and
+  # can be switched straight back off from admin without a rebuild.
+  arcade_show_record_flair:
+    client: true
+    default: false
+    type: bool
+
   # How many entries a game leaderboard shows.
   arcade_leaderboard_size:
     client: true

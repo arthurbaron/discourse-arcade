@@ -59,6 +59,9 @@ class ArcadeScoreSubmission
         )
     end
 
+    # A new score may have taken a first place, so the cached holders are stale.
+    ArcadeRecordHolders.clear!
+
     Result.new(success: true, score: record)
   rescue ActiveRecord::RecordNotUnique
     failure("This run already has a score")

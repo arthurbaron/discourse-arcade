@@ -360,6 +360,51 @@
   color: var(--danger);
 }
 
+/* ── Record flair next to a poster's name ──────────────── */
+
+/* This sits in the post header, which is already a full line, so it stays small
+   and keeps a fixed width. Not scoped under .arcade because it renders on
+   posts, so every rule here is namespaced by its own class instead. */
+.arcade-record-flair {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  margin-left: 0.4em;
+  font-size: 0.85em;
+  color: var(--primary-medium);
+  /* The mobile post header orders its children differently, which puts the
+     flair in front of the name. This keeps it after the name in both. */
+  order: 99;
+}
+
+.arcade-record-flair:hover {
+  color: var(--tertiary);
+}
+
+/* Two classes, to beat core's link colour on elements inside the post header.
+   Without this the count reads as a link rather than as a number. */
+.arcade-record-flair .arcade-record-flair-count {
+  color: var(--primary-medium);
+}
+
+.arcade-record-flair:hover .arcade-record-flair-count {
+  color: var(--tertiary);
+}
+
+/* Gold rather than a theme colour, for the same reason incoming fire in the
+   games is red: a trophy that takes the accent colour stops reading as a
+   trophy. Desaturated enough to sit quietly on light and dark alike. */
+.arcade-record-flair .d-icon {
+  width: 0.85em;
+  height: 0.85em;
+  color: #c9971f;
+}
+
+.arcade-record-flair-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Mobile ────────────────────────────────────────────── */
 
 @media (max-width: 767px) {

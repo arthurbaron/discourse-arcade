@@ -8,45 +8,45 @@
 (function () {
   "use strict";
 
-  var A = window.Arcade;
+  let A = window.Arcade;
 
-  var STEP_MS = 16;
-  var START_LIVES = 3;
+  let STEP_MS = 16;
+  let START_LIVES = 3;
 
   // Goal mouth, as fractions of the square stage.
-  var GOAL_LEFT = 0.12;
-  var GOAL_RIGHT = 0.88;
-  var GOAL_TOP = 0.15;
-  var GOAL_BOTTOM = 0.53;
+  let GOAL_LEFT = 0.12;
+  let GOAL_RIGHT = 0.88;
+  let GOAL_TOP = 0.15;
+  let GOAL_BOTTOM = 0.53;
 
-  var KEEPER_W = 0.115;
-  var KEEPER_H = 0.19;
+  let KEEPER_W = 0.115;
+  let KEEPER_H = 0.19;
 
-  var SPOT_X = 0.5;
-  var SPOT_Y = 0.87;
-  var BALL_R = 0.028;
+  let SPOT_X = 0.5;
+  let SPOT_Y = 0.87;
+  let BALL_R = 0.028;
 
-  var FLIGHT_STEPS = 28;
-  var RESULT_STEPS = 42;
-  var MIN_DRAG = 0.08;
+  let FLIGHT_STEPS = 28;
+  let RESULT_STEPS = 42;
+  let MIN_DRAG = 0.08;
 
-  var stage = document.getElementById("stage");
-  var view = A.canvas(document.getElementById("view"));
-  var scoreEl = document.getElementById("score");
-  var hintEl = document.getElementById("hint");
-  var overEl = document.getElementById("over");
+  let stage = document.getElementById("stage");
+  let view = A.canvas(document.getElementById("view"));
+  let scoreEl = document.getElementById("score");
+  let hintEl = document.getElementById("hint");
+  let overEl = document.getElementById("over");
 
-  var phase = "aiming"; // aiming | flying | result
-  var timer = 0;
-  var goals = 0;
-  var lives = START_LIVES;
-  var alive = true;
+  let phase = "aiming"; // aiming | flying | result
+  let timer = 0;
+  let goals = 0;
+  let lives = START_LIVES;
+  let alive = true;
 
-  var keeper = { x: 0.5, dir: 1, lunge: 0 };
-  var ball = { x: SPOT_X, y: SPOT_Y };
-  var shot = null;
-  var guide = null;
-  var outcome = "";
+  let keeper = { x: 0.5, dir: 1, lunge: 0 };
+  let ball = { x: SPOT_X, y: SPOT_Y };
+  let shot = null;
+  let guide = null;
+  let outcome = "";
 
   function size() {
     return Math.min(view.w, view.h);
@@ -125,8 +125,8 @@
       return;
     }
 
-    var dx = to.x - ball.x;
-    var dy = to.y - ball.y;
+    let dx = to.x - ball.x;
+    let dy = to.y - ball.y;
 
     // A tap or a downward flick is not a shot, so it costs nothing.
     if (Math.hypot(dx, dy) < MIN_DRAG || dy > -MIN_DRAG) {
@@ -135,7 +135,7 @@
     }
 
     // Aim past the goal line a touch so the ball visibly crosses it.
-    var target = { x: to.x, y: to.y };
+    let target = { x: to.x, y: to.y };
 
     shot = {
       fromX: ball.x,
@@ -154,8 +154,8 @@
   function patrolKeeper() {
     keeper.x += keeper.dir * keeperSpeed();
 
-    var minX = GOAL_LEFT + KEEPER_W / 2;
-    var maxX = GOAL_RIGHT - KEEPER_W / 2;
+    let minX = GOAL_LEFT + KEEPER_W / 2;
+    let maxX = GOAL_RIGHT - KEEPER_W / 2;
 
     if (keeper.x <= minX) {
       keeper.x = minX;
@@ -173,9 +173,9 @@
       return;
     }
 
-    var wanted = shot.toX;
-    var delta = wanted - keeper.x;
-    var reach = keeperLungeSpeed();
+    let wanted = shot.toX;
+    let delta = wanted - keeper.x;
+    let reach = keeperLungeSpeed();
 
     if (Math.abs(delta) <= reach) {
       keeper.x = wanted;
@@ -195,8 +195,8 @@
       return;
     }
 
-    var box = keeperBox();
-    var reachesBall =
+    let box = keeperBox();
+    let reachesBall =
       ball.x + BALL_R > box.left &&
       ball.x - BALL_R < box.right &&
       ball.y + BALL_R > box.top &&
@@ -223,7 +223,7 @@
       lungeKeeper();
 
       shot.step++;
-      var t = Math.min(1, shot.step / FLIGHT_STEPS);
+      let t = Math.min(1, shot.step / FLIGHT_STEPS);
       ball.x = shot.fromX + (shot.toX - shot.fromX) * t;
       ball.y = shot.fromY + (shot.toY - shot.fromY) * t;
 
@@ -249,26 +249,26 @@
   }
 
   function drawGoal(ctx, s) {
-    var left = GOAL_LEFT * s;
-    var right = GOAL_RIGHT * s;
-    var top = GOAL_TOP * s;
-    var bottom = GOAL_BOTTOM * s;
+    let left = GOAL_LEFT * s;
+    let right = GOAL_RIGHT * s;
+    let top = GOAL_TOP * s;
+    let bottom = GOAL_BOTTOM * s;
 
     // Net
     ctx.save();
     ctx.globalAlpha = 0.28;
     ctx.strokeStyle = A.theme.muted;
     ctx.lineWidth = Math.max(1, s * 0.002);
-    var steps = 9;
-    for (var i = 1; i < steps; i++) {
-      var x = left + ((right - left) * i) / steps;
+    let steps = 9;
+    for (let i = 1; i < steps; i++) {
+      let x = left + ((right - left) * i) / steps;
       ctx.beginPath();
       ctx.moveTo(x, top);
       ctx.lineTo(x, bottom);
       ctx.stroke();
     }
-    for (var j = 1; j < 5; j++) {
-      var y = top + ((bottom - top) * j) / 5;
+    for (let j = 1; j < 5; j++) {
+      let y = top + ((bottom - top) * j) / 5;
       ctx.beginPath();
       ctx.moveTo(left, y);
       ctx.lineTo(right, y);
@@ -298,7 +298,7 @@
   }
 
   function drawKeeper(ctx, s) {
-    var box = keeperBox();
+    let box = keeperBox();
     ctx.fillStyle = A.theme.accent;
     ctx.fillRect(
       box.left * s,
@@ -308,7 +308,7 @@
     );
 
     // Gloves, so the reach is readable at a glance.
-    var glove = KEEPER_W * 0.3;
+    let glove = KEEPER_W * 0.3;
     ctx.fillRect(
       (box.left - glove * 0.5) * s,
       (box.top + KEEPER_H * 0.18) * s,
@@ -328,7 +328,7 @@
       return;
     }
 
-    var bad = !!targetVerdict(guide);
+    let bad = !!targetVerdict(guide);
 
     ctx.save();
     ctx.globalAlpha = bad ? 0.35 : 0.75;
@@ -362,8 +362,8 @@
   }
 
   function draw() {
-    var ctx = view.ctx;
-    var s = size();
+    let ctx = view.ctx;
+    let s = size();
 
     ctx.clearRect(0, 0, view.w, view.h);
     ctx.fillStyle = A.theme.low;
@@ -391,7 +391,7 @@
   }
 
   function normalise(point) {
-    var s = size();
+    let s = size();
     return { x: point.x / s, y: point.y / s };
   }
 

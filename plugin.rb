@@ -10,9 +10,12 @@ enabled_site_setting :arcade_enabled
 
 register_asset "stylesheets/arcade.css"
 
-# The trophy belongs to Bookie, so the arcade gets its own mark.
+# Bookie owns the trophy on its own pages, so the arcade uses a gamepad for its
+# heading and a star for a personal best. The trophy comes back for the record
+# flair next to a poster's name, where it means what it looks like.
 register_svg_icon "gamepad"
 register_svg_icon "star"
+register_svg_icon "trophy"
 
 after_initialize do
   [
@@ -20,9 +23,26 @@ after_initialize do
     "app/models/arcade_run",
     "app/models/arcade_score",
     "app/services/arcade_score_submission",
+    "app/services/arcade_record_holders",
     "app/controllers/arcade_page_controller",
     "app/controllers/arcade_controller",
   ].each { |f| require_relative f }
+
+  # Records held, for the badge next to a poster's name.
+  #
+  # The condition runs before the attribute and memoises on the serializer
+  # instance, so a post costs one cached lookup rather than two, and the field is
+  # left out entirely for the vast majority of posts by people holding nothing.
+  # respect_plugin_enabled is on by default, so a disabled arcade drops the field
+  # without needing a check here.
+  add_to_serializer(
+    :post,
+    :arcade_records,
+    include_condition: -> do
+      SiteSetting.arcade_show_record_flair &&
+        (@arcade_records ||= ArcadeRecordHolders.for_user(object.user_id)).present?
+    end,
+  ) { @arcade_records ||= ArcadeRecordHolders.for_user(object.user_id) }
 
   # Prepend so these win before Discourse's catch-all route.
   Discourse::Application.routes.prepend do
