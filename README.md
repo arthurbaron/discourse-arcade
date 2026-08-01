@@ -27,8 +27,9 @@ bin/rake arcade:seed
 | `keepie` | touches | tap the ball |
 | `dribble` | metres | slide to steer, arrows |
 | `holdtheline` | points | slide to move, arrows; fire is automatic |
+| `recall` | rounds | tap the pads |
 
-All seven are built for a square frame.
+All eight are built for a square frame.
 
 ## Adding a game
 
@@ -61,7 +62,8 @@ Some games expose a small read-only object so a spec can check the thing that
 rules, `window.Keepie.state()` to tap the ball accurately,
 `window.Dribble.buildRow` to prove every row leaves a passable gap, and
 `window.Penalty.state()` for the keeper's position and the outcome of a shot,
-which is drawn on the canvas and so invisible to a spec otherwise.
+which is drawn on the canvas and so invisible to a spec otherwise, and
+`window.Recall.state()` for the sequence, since a spec cannot watch pads flash.
 
 These read state or generate a row; none of them set a score. A player already
 has the whole game in front of them in view-source, and scores are validated
@@ -247,6 +249,25 @@ like dead code. It is not. Admins pick that icon for the sidebar link to
 sprite, so the registration here is the only thing keeping it available. It was
 removed once when the heading moved to an emoji, and the sidebar link quietly
 lost its glyph and became unselectable. `spec/icons_spec.rb` guards it.
+
+## Recall and sound
+
+Simon is as much a tune as it is four colours, so the pads play notes. They are
+generated with an oscillator rather than loaded as files, which keeps the game
+self-contained.
+
+Audio needs a gesture inside the frame before a browser will allow it, and the
+gesture in the host page does not count. That is what the "Tap to begin" panel
+is for: it unlocks the sound and starts round one in the same tap, so nobody
+opens the arcade and is ambushed by beeping. There is a mute toggle in the bar,
+which resets each run because a sandboxed frame has no storage to remember it in.
+
+The four pads use two explicit colours each rather than one colour plus opacity.
+Dimming with opacity blends into the page behind it, which left all four looking
+washed out on a light theme.
+
+Colour is never the only cue. Each pad keeps its own corner and its own note, so
+the game does not depend on telling four hues apart.
 
 ## Known limits
 

@@ -94,6 +94,19 @@ ARCADE_GAMES = [
     min_run_seconds: 2,
     position: 7,
   },
+  {
+    slug: "recall",
+    name: "Recall",
+    tagline: "Watch the sequence, repeat it, and watch it grow.",
+    entry_path: "recall/index.html",
+    thumbnail: "recall.svg",
+    score_direction: "high",
+    score_unit: "rounds",
+    # A very good player reaches the twenties from memory.
+    max_plausible_score: 100,
+    min_run_seconds: 1,
+    position: 8,
+  },
 ].freeze
 
 desc "Create or update the arcade game catalogue"

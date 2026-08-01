@@ -156,6 +156,49 @@ RSpec.describe "Arcade games", type: :system do
     expect(expect_single_score).to be >= 0
   end
 
+  it "Recall counts the rounds repeated before a wrong pad" do
+    open_game("recall/index.html")
+
+    # Pads flash rather than sit still, so a spec reads the sequence and plays it
+    # back. Three rounds correctly, then a deliberately wrong pad.
+    page.execute_script(<<~JS)
+      (function () {
+        const TARGET = 3;
+        const pads = document.getElementsByClassName("pad");
+
+        function tap(el) {
+          el.dispatchEvent(new PointerEvent("pointerdown", {
+            pointerId: 1, pointerType: "touch", bubbles: true, cancelable: true
+          }));
+        }
+
+        tap(document.getElementById("begin"));
+
+        function tick() {
+          const s = window.Recall.state();
+          if (s.phase === "over") { return; }
+
+          if (s.phase === "input") {
+            if (s.score >= TARGET) {
+              // Anything other than the pad it wants.
+              tap(pads[(s.sequence[s.expected] + 1) % 4]);
+              return;
+            }
+            for (let i = s.expected; i < s.sequence.length; i++) {
+              tap(pads[s.sequence[i]]);
+            }
+          }
+
+          setTimeout(tick, 60);
+        }
+
+        setTimeout(tick, 60);
+      })();
+    JS
+
+    expect(expect_single_score).to eq(3)
+  end
+
   it "Penalty reports a score after three shots over the bar" do
     open_game("penalty/index.html")
 

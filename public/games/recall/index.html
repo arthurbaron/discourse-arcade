@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Recall</title>
+    <link rel="stylesheet" href="../_shared/arcade.css" />
+    <style>
+      /* Four fixed hues rather than theme colours: a memory game needs four
+         pads you can tell apart at a glance, and a colour scheme cannot promise
+         that. Position and tone carry the same information, so the game does not
+         depend on telling the colours apart. */
+      #pads {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 3%;
+        padding: 3%;
+      }
+
+      /* Two explicit colours per pad rather than one plus opacity. Dimming with
+         opacity blends into whatever is behind it, which on a light theme left
+         all four looking washed out and unfinished. */
+      .pad {
+        border-radius: 8px;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        background: var(--pad);
+        transition: background 90ms ease, transform 90ms ease;
+        touch-action: manipulation;
+      }
+
+      .pad.lit {
+        background: var(--pad-lit);
+        transform: scale(0.97);
+      }
+
+      .pad[data-pad="0"] { --pad: #4a8f5b; --pad-lit: #7ce095; }
+      .pad[data-pad="1"] { --pad: #b5514a; --pad-lit: #f58a80; }
+      .pad[data-pad="2"] { --pad: #c08e22; --pad-lit: #ffd868; }
+      .pad[data-pad="3"] { --pad: #4a7fb5; --pad-lit: #86c2f5; }
+
+      /* While the sequence plays, taps do nothing, so the pads should not look
+         pressable. */
+      #pads.watching .pad {
+        cursor: default;
+      }
+
+      #begin {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4em;
+        background: var(--bg);
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        padding: 1.5em;
+      }
+
+      #begin.gone {
+        display: none;
+      }
+
+      #begin small {
+        font-size: 0.72rem;
+        font-weight: 400;
+        color: var(--muted);
+      }
+
+      #round {
+        font-variant-numeric: tabular-nums;
+      }
+
+      #mute {
+        border: 0;
+        background: none;
+        padding: 0;
+        margin-left: 0.6em;
+        cursor: pointer;
+        font-size: 0.7rem;
+        color: var(--muted);
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="bar">
+        <div>
+          <div id="score-label">Rounds</div>
+          <div id="score">0</div>
+        </div>
+        <div id="hint">
+          <span id="round">Watch the sequence</span>
+          <button id="mute" type="button">sound on</button>
+        </div>
+      </div>
+
+      <div id="stage">
+        <div id="pads">
+          <button class="pad" type="button" data-pad="0" aria-label="Top left"></button>
+          <button class="pad" type="button" data-pad="1" aria-label="Top right"></button>
+          <button class="pad" type="button" data-pad="2" aria-label="Bottom left"></button>
+          <button class="pad" type="button" data-pad="3" aria-label="Bottom right"></button>
+        </div>
+
+        <div id="begin">
+          Tap to begin
+          <small>Watch the sequence, then repeat it</small>
+        </div>
+
+        <div id="over">Game over</div>
+      </div>
+    </div>
+
+    <script src="../_shared/arcade.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
