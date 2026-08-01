@@ -27,8 +27,9 @@ bin/rake arcade:seed
 | `keepie` | touches | tap the ball |
 | `dribble` | metres | slide to steer, arrows |
 | `holdtheline` | points | slide to move, arrows; fire is automatic |
+| `debris` | points | hold to steer and thrust, arrows; fire is automatic |
 
-All seven are built for a square frame.
+All eight are built for a square frame.
 
 ## Adding a game
 

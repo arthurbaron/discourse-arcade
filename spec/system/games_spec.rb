@@ -156,6 +156,14 @@ RSpec.describe "Arcade games", type: :system do
     expect(expect_single_score).to be >= 0
   end
 
+  it "Debris reports a score when the ship is left drifting" do
+    open_game("debris/index.html")
+
+    # Firing is automatic, so a motionless ship still breaks rocks, and the
+    # rocks wrap around until one of them finds it.
+    expect(expect_single_score).to be >= 0
+  end
+
   it "Penalty reports a score after three shots over the bar" do
     open_game("penalty/index.html")
 
