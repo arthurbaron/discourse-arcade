@@ -238,6 +238,15 @@ Roughly 15% of corner attempts miss the target altogether, which is the price of
 aiming there. `penalty_keeper_spec.rb` pins the two things that must stay true:
 he leaves the ground for a high shot, and a shot straight at him is saved.
 
+## Do not remove the gamepad icon registration
+
+`plugin.rb` registers `gamepad` and nothing in the plugin renders it, so it looks
+like dead code. It is not. Admins pick that icon for the sidebar link to
+`/arcade`, and sidebar link icons are not one of the sources that fill the SVG
+sprite, so the registration here is the only thing keeping it available. It was
+removed once when the heading moved to an emoji, and the sidebar link quietly
+lost its glyph and became unselectable. `spec/icons_spec.rb` guards it.
+
 ## Known limits
 
 - The frame is a fixed 1:1 aspect ratio. A game needing another shape needs an

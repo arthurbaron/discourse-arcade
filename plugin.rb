@@ -10,11 +10,17 @@ enabled_site_setting :arcade_enabled
 
 register_asset "stylesheets/arcade.css"
 
-# The arcade heading uses a real emoji, matching Bookie, so no icon is needed
-# for it. A star marks a personal best, and the trophy is for the record flair
-# next to a poster's name.
+# A star marks a personal best, and the trophy is the record flair next to a
+# poster's name.
 register_svg_icon "star"
 register_svg_icon "trophy"
+
+# Keep this even though nothing in this plugin renders it. The heading moved to a
+# real emoji, so it looked unused and got removed once, which silently emptied
+# the gamepad out of the icon sprite and broke the sidebar link to /arcade that
+# an admin had picked it for. Sidebar link icons are not one of the sources that
+# fill the sprite, so registering it here is what keeps it selectable at all.
+register_svg_icon "gamepad"
 
 after_initialize do
   [
