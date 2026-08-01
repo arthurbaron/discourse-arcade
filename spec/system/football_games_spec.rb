@@ -9,12 +9,15 @@ require "rails_helper"
 RSpec.describe "Football games", type: :system do
   fab!(:player) { Fabricate(:user) }
 
-  THEME = "bg=%23ffffff&fg=%23222222&accent=%230088cc&muted=%238f8f8f&low=%23e9e9e9"
+  # A constant here would leak onto Object and clash with the other game spec.
+  let(:theme) do
+    "bg=%23ffffff&fg=%23222222&accent=%230088cc&muted=%238f8f8f&low=%23e9e9e9"
+  end
 
   before { sign_in(player) }
 
   def open_game(slug)
-    visit "/plugins/discourse-arcade/games/#{slug}/index.html?#{THEME}"
+    visit "/plugins/discourse-arcade/games/#{slug}/index.html?#{theme}"
     expect(page).to have_css("#stage")
   end
 

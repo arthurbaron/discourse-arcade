@@ -27,6 +27,11 @@ RSpec.describe "Arcade", type: :system do
     visit "/arcade"
 
     expect(page).to have_css(".arcade-index")
+
+    # The icon has to actually resolve to a sprite symbol. A name FontAwesome
+    # has dropped renders an empty box rather than failing loudly.
+    expect(page).to have_css(".arcade-head h1 svg.d-icon-gamepad")
+
     expect(page).to have_css(".arcade-card", count: 1)
     expect(page).to have_content("Test Game")
     expect(page).to have_content("A game for the specs")
@@ -67,6 +72,9 @@ RSpec.describe "Arcade", type: :system do
 
     expect(page).to have_css(".arcade-frame-score")
     expect(page).to have_button("Play again")
+
+    # A first score is always a personal best, so the badge and its star show.
+    expect(page).to have_css(".arcade-frame-badge svg.d-icon-star")
     expect(page).to have_css(".arcade-lb-row.is-you")
 
     score = ArcadeScore.find_by(user_id: player.id, arcade_game_id: game.id)

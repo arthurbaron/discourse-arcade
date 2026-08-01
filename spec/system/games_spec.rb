@@ -9,14 +9,17 @@ require "rails_helper"
 RSpec.describe "Arcade games", type: :system do
   fab!(:player) { Fabricate(:user) }
 
-  THEME = "bg=%23ffffff&fg=%23222222&accent=%230088cc&muted=%238f8f8f&low=%23e9e9e9"
+  # A constant here would leak onto Object and clash with the other game spec.
+  let(:theme) do
+    "bg=%23ffffff&fg=%23222222&accent=%230088cc&muted=%238f8f8f&low=%23e9e9e9"
+  end
 
   before { sign_in(player) }
 
   # 2048 predates the shared shell in games/_shared and still uses its own
   # markup, so the stage element differs per game.
   def open_game(path, stage: "#stage")
-    visit "/plugins/discourse-arcade/games/#{path}?#{THEME}"
+    visit "/plugins/discourse-arcade/games/#{path}?#{theme}"
 
     # The game posts to its parent; standalone that is this same window.
     page.execute_script(<<~JS)
