@@ -10,62 +10,62 @@
 (function () {
   "use strict";
 
-  var A = window.Arcade;
+  let A = window.Arcade;
 
-  var STEP_MS = 16;
-  var START_LIVES = 3;
+  let STEP_MS = 16;
+  let START_LIVES = 3;
 
   // Everything is a fraction of the square stage.
-  var COLS = 7;
-  var MAX_ROWS = 4;
-  var ENEMY_W = 0.075;
-  var ENEMY_H = 0.055;
-  var GAP_X = 0.035;
-  var GAP_Y = 0.03;
-  var MARGIN = 0.03;
-  var STEP_DOWN = 0.035;
+  let COLS = 7;
+  let MAX_ROWS = 4;
+  let ENEMY_W = 0.075;
+  let ENEMY_H = 0.055;
+  let GAP_X = 0.035;
+  let GAP_Y = 0.03;
+  let MARGIN = 0.03;
+  let STEP_DOWN = 0.035;
 
-  var PLAYER_W = 0.1;
-  var PLAYER_H = 0.035;
-  var PLAYER_Y = 0.93;
-  var KEY_NUDGE = 0.07;
+  let PLAYER_W = 0.1;
+  let PLAYER_H = 0.035;
+  let PLAYER_Y = 0.93;
+  let KEY_NUDGE = 0.07;
 
-  var SHOT_W = 0.008;
-  var SHOT_H = 0.035;
-  var SHOT_SPEED = 0.026;
-  var MAX_SHOTS = 2;
-  var FIRE_EVERY = 12;
+  let SHOT_W = 0.008;
+  let SHOT_H = 0.035;
+  let SHOT_SPEED = 0.026;
+  let MAX_SHOTS = 2;
+  let FIRE_EVERY = 12;
 
-  var BOMB_R = 0.012;
-  var BOMB_SPEED = 0.0125;
+  let BOMB_R = 0.012;
+  let BOMB_SPEED = 0.0125;
 
-  var RESPAWN_STEPS = 45;
+  let RESPAWN_STEPS = 45;
 
   // Semantic danger colour, deliberately outside the theme so incoming fire
   // never blends into the forum's accent.
-  var DANGER = "#d1594a";
+  let DANGER = "#d1594a";
 
-  var stage = document.getElementById("stage");
-  var view = A.canvas(document.getElementById("view"));
-  var scoreEl = document.getElementById("score");
-  var hintEl = document.getElementById("hint");
-  var overEl = document.getElementById("over");
+  let stage = document.getElementById("stage");
+  let view = A.canvas(document.getElementById("view"));
+  let scoreEl = document.getElementById("score");
+  let hintEl = document.getElementById("hint");
+  let overEl = document.getElementById("over");
 
-  var blockWidth = COLS * ENEMY_W + (COLS - 1) * GAP_X;
+  let blockWidth = COLS * ENEMY_W + (COLS - 1) * GAP_X;
 
-  var enemies = [];
-  var shots = [];
-  var bombs = [];
-  var formation = { x: MARGIN, y: 0.1, dir: 1 };
-  var player = { x: 0.5 };
-  var score = 0;
-  var lives = START_LIVES;
-  var wave = 1;
-  var rows = 2;
-  var alive = true;
-  var fireTimer = 0;
-  var bombTimer = 0;
-  var respawn = 0;
+  let enemies = [];
+  let shots = [];
+  let bombs = [];
+  let formation = { x: MARGIN, y: 0.1, dir: 1 };
+  let player = { x: 0.5 };
+  let score = 0;
+  let lives = START_LIVES;
+  let wave = 1;
+  let rows = 2;
+  let alive = true;
+  let fireTimer = 0;
+  let bombTimer = 0;
+  let respawn = 0;
 
   function size() {
     return Math.min(view.w, view.h);
@@ -79,9 +79,9 @@
     rows = rowsForWave(wave);
     enemies = [];
 
-    for (var row = 0; row < rows; row++) {
-      for (var col = 0; col < COLS; col++) {
-        enemies.push({ col: col, row: row, alive: true });
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < COLS; col++) {
+        enemies.push({ col, row, alive: true });
       }
     }
 
@@ -95,8 +95,8 @@
   }
 
   function aliveCount() {
-    var n = 0;
-    for (var i = 0; i < enemies.length; i++) {
+    let n = 0;
+    for (let i = 0; i < enemies.length; i++) {
       if (enemies[i].alive) {
         n++;
       }
@@ -107,9 +107,9 @@
   // The formation speeds up as it thins out, which is what gives the last few
   // attackers their bite.
   function formationSpeed() {
-    var total = enemies.length || 1;
-    var left = aliveCount();
-    var thinned = 1 + 2.4 * (1 - left / total);
+    let total = enemies.length || 1;
+    let left = aliveCount();
+    let thinned = 1 + 2.4 * (1 - left / total);
     return 0.0022 * thinned * (1 + 0.16 * (wave - 1));
   }
 
@@ -163,7 +163,7 @@
   }
 
   function movePlayer(ratio) {
-    var half = PLAYER_W / 2;
+    let half = PLAYER_W / 2;
     player.x = Math.min(1 - half, Math.max(half, ratio));
   }
 
@@ -177,12 +177,12 @@
   // A bomb comes from the lowest surviving attacker in a random column, so it
   // always looks like it was dropped by something you can see.
   function dropBomb() {
-    var columns = [];
+    let columns = [];
 
-    for (var col = 0; col < COLS; col++) {
-      var lowest = null;
-      for (var i = 0; i < enemies.length; i++) {
-        var enemy = enemies[i];
+    for (let col = 0; col < COLS; col++) {
+      let lowest = null;
+      for (let i = 0; i < enemies.length; i++) {
+        let enemy = enemies[i];
         if (enemy.alive && enemy.col === col) {
           if (!lowest || enemy.row > lowest.row) {
             lowest = enemy;
@@ -198,17 +198,17 @@
       return;
     }
 
-    var pick = columns[Math.floor(Math.random() * columns.length)];
-    var box = enemyBox(pick);
+    let pick = columns[Math.floor(Math.random() * columns.length)];
+    let box = enemyBox(pick);
     bombs.push({ x: box.x + box.w / 2, y: box.y + box.h });
   }
 
   function moveFormation() {
-    var speed = formationSpeed();
+    let speed = formationSpeed();
     formation.x += formation.dir * speed;
 
-    var minX = MARGIN;
-    var maxX = 1 - MARGIN - blockWidth;
+    let minX = MARGIN;
+    let maxX = 1 - MARGIN - blockWidth;
 
     if (formation.x <= minX) {
       formation.x = minX;
@@ -222,8 +222,8 @@
   }
 
   function advanceShots() {
-    for (var i = shots.length - 1; i >= 0; i--) {
-      var shot = shots[i];
+    for (let i = shots.length - 1; i >= 0; i--) {
+      let shot = shots[i];
       shot.y -= SHOT_SPEED;
 
       if (shot.y + SHOT_H < 0) {
@@ -231,14 +231,14 @@
         continue;
       }
 
-      for (var j = 0; j < enemies.length; j++) {
-        var enemy = enemies[j];
+      for (let j = 0; j < enemies.length; j++) {
+        let enemy = enemies[j];
         if (!enemy.alive) {
           continue;
         }
 
-        var box = enemyBox(enemy);
-        var hit =
+        let box = enemyBox(enemy);
+        let hit =
           shot.x + SHOT_W / 2 > box.x &&
           shot.x - SHOT_W / 2 < box.x + box.w &&
           shot.y < box.y + box.h &&
@@ -255,11 +255,11 @@
   }
 
   function advanceBombs() {
-    var half = PLAYER_W / 2;
-    var top = PLAYER_Y - PLAYER_H;
+    let half = PLAYER_W / 2;
+    let top = PLAYER_Y - PLAYER_H;
 
-    for (var i = bombs.length - 1; i >= 0; i--) {
-      var bomb = bombs[i];
+    for (let i = bombs.length - 1; i >= 0; i--) {
+      let bomb = bombs[i];
       bomb.y += BOMB_SPEED;
 
       if (bomb.y - BOMB_R > 1) {
@@ -271,7 +271,7 @@
         continue;
       }
 
-      var hit =
+      let hit =
         bomb.y + BOMB_R > top &&
         bomb.y - BOMB_R < PLAYER_Y &&
         bomb.x + BOMB_R > player.x - half &&
@@ -286,13 +286,13 @@
   }
 
   function formationReachedLine() {
-    var top = PLAYER_Y - PLAYER_H;
+    let top = PLAYER_Y - PLAYER_H;
 
-    for (var i = 0; i < enemies.length; i++) {
+    for (let i = 0; i < enemies.length; i++) {
       if (!enemies[i].alive) {
         continue;
       }
-      var box = enemyBox(enemies[i]);
+      let box = enemyBox(enemies[i]);
       if (box.y + box.h >= top) {
         return true;
       }
@@ -344,7 +344,7 @@
   }
 
   function roundRect(ctx, x, y, w, h, r) {
-    var radius = Math.min(r, w / 2, h / 2);
+    let radius = Math.min(r, w / 2, h / 2);
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.arcTo(x + w, y, x + w, y + h, radius);
@@ -355,8 +355,8 @@
   }
 
   function draw() {
-    var ctx = view.ctx;
-    var s = size();
+    let ctx = view.ctx;
+    let s = size();
 
     ctx.clearRect(0, 0, view.w, view.h);
     ctx.fillStyle = A.theme.low;
@@ -365,12 +365,12 @@
     // Higher rows score more, so they read as the stronger colour. Same
     // language as Breakout.
     ctx.fillStyle = A.theme.accent;
-    for (var i = 0; i < enemies.length; i++) {
-      var enemy = enemies[i];
+    for (let i = 0; i < enemies.length; i++) {
+      let enemy = enemies[i];
       if (!enemy.alive) {
         continue;
       }
-      var box = enemyBox(enemy);
+      let box = enemyBox(enemy);
       ctx.globalAlpha = 1 - enemy.row * 0.16;
       roundRect(ctx, box.x * s, box.y * s, box.w * s, box.h * s, s * 0.012);
       ctx.fill();
@@ -390,7 +390,7 @@
 
     ctx.fillStyle = A.theme.fg;
 
-    for (var k = 0; k < shots.length; k++) {
+    for (let k = 0; k < shots.length; k++) {
       ctx.fillRect(
         (shots[k].x - SHOT_W / 2) * s,
         shots[k].y * s,
@@ -400,7 +400,7 @@
     }
 
     // Blink through the respawn pause so it is obvious you were hit.
-    var hidden = respawn > 0 && Math.floor(respawn / 6) % 2 === 0;
+    let hidden = respawn > 0 && Math.floor(respawn / 6) % 2 === 0;
     if (!hidden) {
       roundRect(
         ctx,
@@ -414,7 +414,7 @@
     }
 
     ctx.fillStyle = DANGER;
-    for (var b = 0; b < bombs.length; b++) {
+    for (let b = 0; b < bombs.length; b++) {
       ctx.beginPath();
       ctx.arc(bombs[b].x * s, bombs[b].y * s, BOMB_R * s, 0, Math.PI * 2);
       ctx.fill();
