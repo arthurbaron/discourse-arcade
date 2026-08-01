@@ -181,6 +181,13 @@ ambient helper is gone. `discourse-bookie` uses `{{d-icon}}` in six places and
 runs fine on `v2026.8.0-latest`. Absence of use is not absence of support, and
 `{{fa-icon}}` is only a deprecated alias for the same thing.
 
+**Run frontend specs in `~/discourse-next`, not the old checkout.** The old
+checkout serves a cached frontend build to its specs and does not rebuild it when
+a template changes, so a frontend assertion there can pass or fail against code
+that is no longer in the file. It was still rendering a `d-icon-gamepad` in the
+heading long after that markup was replaced. Its Ruby specs are trustworthy; its
+frontend ones are not.
+
 Two smaller notes on running the linters from `~/discourse-next`: eslint there
 reports the classic component in `arcade-frame.js`, and rubocop there wants
 newer fabricator shorthand in the specs. Both are deliberate. The shorthand in
