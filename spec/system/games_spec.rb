@@ -199,6 +199,13 @@ RSpec.describe "Arcade games", type: :system do
     expect(expect_single_score).to eq(3)
   end
 
+  it "Intercept reports a score once every city is gone" do
+    open_game("intercept/index.html")
+
+    # No taps at all, so the waves land unopposed until the last city falls.
+    expect(expect_single_score).to be >= 0
+  end
+
   it "Penalty reports a score after three shots over the bar" do
     open_game("penalty/index.html")
 

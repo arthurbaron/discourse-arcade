@@ -107,6 +107,18 @@ ARCADE_GAMES = [
     min_run_seconds: 1,
     position: 8,
   },
+  {
+    slug: "intercept",
+    name: "Intercept",
+    tagline: "Blow the incoming out of the sky. Ammo runs out.",
+    entry_path: "intercept/index.html",
+    thumbnail: "intercept.svg",
+    score_direction: "high",
+    score_unit: "points",
+    max_plausible_score: 500_000,
+    min_run_seconds: 2,
+    position: 9,
+  },
 ].freeze
 
 desc "Create or update the arcade game catalogue"

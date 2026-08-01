@@ -28,8 +28,9 @@ bin/rake arcade:seed
 | `dribble` | metres | slide to steer, arrows |
 | `holdtheline` | points | slide to move, arrows; fire is automatic |
 | `recall` | rounds | tap the pads |
+| `intercept` | points | tap to place a blast |
 
-All eight are built for a square frame.
+All nine are built for a square frame.
 
 ## Adding a game
 
@@ -63,7 +64,9 @@ rules, `window.Keepie.state()` to tap the ball accurately,
 `window.Dribble.buildRow` to prove every row leaves a passable gap, and
 `window.Penalty.state()` for the keeper's position and the outcome of a shot,
 which is drawn on the canvas and so invisible to a spec otherwise, and
-`window.Recall.state()` for the sequence, since a spec cannot watch pads flash.
+`window.Recall.state()` for the sequence, since a spec cannot watch pads flash,
+and `window.Intercept.state()` for the incoming tracks, so a spec can lead a
+shot the way a player has to.
 
 These read state or generate a row; none of them set a score. A player already
 has the whole game in front of them in view-source, and scores are validated
@@ -268,6 +271,24 @@ washed out on a light theme.
 
 Colour is never the only cue. Each pad keeps its own corner and its own note, so
 the game does not depend on telling four hues apart.
+
+## Intercept and leading the shot
+
+Two rules carry this one, and both are worth leaving alone.
+
+Ammo is capped per wave and refills between them. Without that you tap your way
+out of every situation and the game has no shape; with it you have to hold fire
+until several missiles line up. Running dry mid-wave and watching the rest land
+is the point, not a bug.
+
+The battery sits on the ground and its counter-missile has to fly up, so you aim
+where a missile is going rather than where it is. Nothing connects otherwise,
+which is why `intercept_spec.rb` has to solve for the intercept point by fixed
+point iteration before it can fire: a spec that taps at a missile's current
+position never hits anything and would pass while the game was broken.
+
+A destroyed missile explodes in turn, so a well placed blast unzips a cluster.
+That chain is where the scores come from.
 
 ## Known limits
 

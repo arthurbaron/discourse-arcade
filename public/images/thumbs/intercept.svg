@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" role="img" aria-label="Intercept">
+  <g opacity="0.14" fill="#808080">
+    <rect x="82" y="14" width="156" height="152" rx="6" />
+  </g>
+
+  <g stroke="#d1594a" stroke-width="2" fill="none">
+    <path d="M100 22 L128 96" />
+    <path d="M150 22 L166 70" />
+    <path d="M212 22 L188 84" />
+  </g>
+  <g fill="#d1594a">
+    <circle cx="128" cy="96" r="3" />
+    <circle cx="188" cy="84" r="3" />
+  </g>
+
+  <g>
+    <circle cx="166" cy="70" r="20" fill="#f0b429" opacity="0.35" />
+    <circle cx="166" cy="70" r="20" fill="none" stroke="#f0b429" stroke-width="2.5" />
+  </g>
+
+  <path d="M160 148 L166 70" stroke="#4a7fb5" stroke-width="2" fill="none" opacity="0.8" />
+
+  <path d="M90 148 h140" stroke="#808080" stroke-width="2" opacity="0.6" />
+
+  <g fill="#4a7fb5">
+    <rect x="96" y="138" width="16" height="10" />
+    <rect x="120" y="138" width="16" height="10" />
+    <rect x="192" y="138" width="16" height="10" />
+    <rect x="216" y="138" width="16" height="10" />
+  </g>
+  <g fill="#808080" opacity="0.55">
+    <rect x="144" y="145" width="16" height="3" />
+    <rect x="168" y="145" width="16" height="3" />
+  </g>
+
+  <path d="M160 138 L154 148 L166 148 Z" fill="#555555" />
+</svg>
