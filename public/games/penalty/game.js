@@ -8,45 +8,66 @@
 (function () {
   "use strict";
 
-  var A = window.Arcade;
+  let A = window.Arcade;
 
-  var STEP_MS = 16;
-  var START_LIVES = 3;
+  let STEP_MS = 16;
+  let START_LIVES = 3;
 
   // Goal mouth, as fractions of the square stage.
-  var GOAL_LEFT = 0.12;
-  var GOAL_RIGHT = 0.88;
-  var GOAL_TOP = 0.15;
-  var GOAL_BOTTOM = 0.53;
+  let GOAL_LEFT = 0.12;
+  let GOAL_RIGHT = 0.88;
+  let GOAL_TOP = 0.15;
+  let GOAL_BOTTOM = 0.53;
 
-  var KEEPER_W = 0.115;
-  var KEEPER_H = 0.19;
+  let KEEPER_W = 0.115;
+  let KEEPER_H = 0.19;
+  // Standing height, from which the keeper dives up and sideways. Without a
+  // vertical dive the whole top half of the goal is a free goal.
+  let KEEPER_REST_Y = GOAL_BOTTOM - KEEPER_H / 2;
+  let KEEPER_RECOVER = 0.013;
 
-  var SPOT_X = 0.5;
-  var SPOT_Y = 0.87;
-  var BALL_R = 0.028;
+  // Inaccuracy grows the further from the middle of the goal you aim, so a
+  // corner is an ambitious shot rather than a free one, while a comfortable
+  // shot goes roughly where you put it.
+  let GOAL_MID_X = (GOAL_LEFT + GOAL_RIGHT) / 2;
+  let GOAL_MID_Y = (GOAL_TOP + GOAL_BOTTOM) / 2;
+  let MAX_AIM_OFFSET = Math.hypot(
+    GOAL_RIGHT - GOAL_MID_X,
+    GOAL_BOTTOM - GOAL_MID_Y
+  );
+  let SPREAD_BASE = 0.012;
+  let SPREAD_EXTRA = 0.032;
 
-  var FLIGHT_STEPS = 28;
-  var RESULT_STEPS = 42;
-  var MIN_DRAG = 0.08;
+  function spreadFor(point) {
+    let offset = Math.hypot(point.x - GOAL_MID_X, point.y - GOAL_MID_Y);
+    return SPREAD_BASE + (Math.min(1, offset / MAX_AIM_OFFSET) * SPREAD_EXTRA);
+  }
 
-  var stage = document.getElementById("stage");
-  var view = A.canvas(document.getElementById("view"));
-  var scoreEl = document.getElementById("score");
-  var hintEl = document.getElementById("hint");
-  var overEl = document.getElementById("over");
+  let SPOT_X = 0.5;
+  let SPOT_Y = 0.87;
+  let BALL_R = 0.028;
 
-  var phase = "aiming"; // aiming | flying | result
-  var timer = 0;
-  var goals = 0;
-  var lives = START_LIVES;
-  var alive = true;
+  let FLIGHT_STEPS = 28;
+  let RESULT_STEPS = 42;
+  let MIN_DRAG = 0.08;
 
-  var keeper = { x: 0.5, dir: 1, lunge: 0 };
-  var ball = { x: SPOT_X, y: SPOT_Y };
-  var shot = null;
-  var guide = null;
-  var outcome = "";
+  let stage = document.getElementById("stage");
+  let view = A.canvas(document.getElementById("view"));
+  let scoreEl = document.getElementById("score");
+  let hintEl = document.getElementById("hint");
+  let overEl = document.getElementById("over");
+
+  let phase = "aiming"; // aiming | flying | result
+  let timer = 0;
+  let goals = 0;
+  let lives = START_LIVES;
+  let alive = true;
+
+  let keeper = { x: 0.5, y: KEEPER_REST_Y, dir: 1, lunge: 0 };
+  let ball = { x: SPOT_X, y: SPOT_Y };
+  let shot = null;
+  let guide = null;
+  let outcome = "";
 
   function size() {
     return Math.min(view.w, view.h);
@@ -56,26 +77,36 @@
     return Math.min(0.019, 0.0055 + goals * 0.0007);
   }
 
+  // Tuned by measurement, not by feel. At 0.010 the keeper covered 0.16 of a
+  // dive while a top corner sits 0.43 away, so the corners were free. He now
+  // reaches a badly timed shot and still cannot reach a corner picked while he
+  // is at the far post, which is the whole game.
   function keeperLungeSpeed() {
-    return Math.min(0.032, 0.010 + goals * 0.0009);
+    return Math.min(0.04, 0.021 + goals * 0.0009);
   }
 
   function keeperReactionSteps() {
-    return Math.max(4, 12 - Math.floor(goals / 2));
+    return Math.max(4, 10 - Math.floor(goals / 2));
   }
 
   function keeperBox() {
     return {
       left: keeper.x - KEEPER_W / 2,
       right: keeper.x + KEEPER_W / 2,
-      top: GOAL_BOTTOM - KEEPER_H,
-      bottom: GOAL_BOTTOM,
+      top: keeper.y - KEEPER_H / 2,
+      bottom: keeper.y + KEEPER_H / 2,
     };
   }
 
+  function clamp(value, low, high) {
+    return Math.min(high, Math.max(low, value));
+  }
+
   function updateHint() {
+    // A click places the shot just as well as a drag does, so the hint should
+    // not promise a gesture that is not required.
     hintEl.innerHTML =
-      "Drag from the ball to shoot &middot; Lives " + Math.max(0, lives);
+      "Aim anywhere in the goal &middot; Lives " + Math.max(0, lives);
   }
 
   function finish() {
@@ -125,8 +156,8 @@
       return;
     }
 
-    var dx = to.x - ball.x;
-    var dy = to.y - ball.y;
+    let dx = to.x - ball.x;
+    let dy = to.y - ball.y;
 
     // A tap or a downward flick is not a shot, so it costs nothing.
     if (Math.hypot(dx, dy) < MIN_DRAG || dy > -MIN_DRAG) {
@@ -134,8 +165,14 @@
       return;
     }
 
-    // Aim past the goal line a touch so the ball visibly crosses it.
-    var target = { x: to.x, y: to.y };
+    // Where you released, plus a little inaccuracy. The verdict is worked out
+    // after the spread, so a shot aimed a hair inside the post can still go
+    // wide. That is what stops corner-hunting from being a free goal.
+    let spread = spreadFor(to);
+    let target = {
+      x: to.x + (Math.random() * 2 - 1) * spread,
+      y: to.y + (Math.random() * 2 - 1) * spread,
+    };
 
     shot = {
       fromX: ball.x,
@@ -154,8 +191,8 @@
   function patrolKeeper() {
     keeper.x += keeper.dir * keeperSpeed();
 
-    var minX = GOAL_LEFT + KEEPER_W / 2;
-    var maxX = GOAL_RIGHT - KEEPER_W / 2;
+    let minX = GOAL_LEFT + KEEPER_W / 2;
+    let maxX = GOAL_RIGHT - KEEPER_W / 2;
 
     if (keeper.x <= minX) {
       keeper.x = minX;
@@ -163,6 +200,12 @@
     } else if (keeper.x >= maxX) {
       keeper.x = maxX;
       keeper.dir = -1;
+    }
+
+    // Back on his feet after a dive.
+    let drop = KEEPER_REST_Y - keeper.y;
+    if (Math.abs(drop) > 0.0005) {
+      keeper.y += Math.sign(drop) * Math.min(Math.abs(drop), KEEPER_RECOVER);
     }
   }
 
@@ -173,20 +216,29 @@
       return;
     }
 
-    var wanted = shot.toX;
-    var delta = wanted - keeper.x;
-    var reach = keeperLungeSpeed();
+    // Dives at the ball in both axes. How far he gets is the whole contest:
+    // a corner reached from the far post is a longer dive than the flight
+    // allows, which is why timing the patrol matters as much as placement.
+    let reach = keeperLungeSpeed();
+    let dx = shot.toX - keeper.x;
+    let dy = shot.toY - keeper.y;
+    let dist = Math.hypot(dx, dy);
 
-    if (Math.abs(delta) <= reach) {
-      keeper.x = wanted;
+    if (dist <= reach) {
+      keeper.x = shot.toX;
+      keeper.y = shot.toY;
     } else {
-      keeper.x += Math.sign(delta) * reach;
+      keeper.x += (dx / dist) * reach;
+      keeper.y += (dy / dist) * reach;
     }
 
-    keeper.x = Math.min(
-      GOAL_RIGHT - KEEPER_W / 2,
-      Math.max(GOAL_LEFT + KEEPER_W / 2, keeper.x)
+    keeper.x = clamp(
+      keeper.x,
+      GOAL_LEFT + KEEPER_W / 2,
+      GOAL_RIGHT - KEEPER_W / 2
     );
+    // He can leave the ground but not the goal, and not sink into it.
+    keeper.y = clamp(keeper.y, GOAL_TOP + KEEPER_H / 2, KEEPER_REST_Y);
   }
 
   function resolveShot() {
@@ -195,8 +247,8 @@
       return;
     }
 
-    var box = keeperBox();
-    var reachesBall =
+    let box = keeperBox();
+    let reachesBall =
       ball.x + BALL_R > box.left &&
       ball.x - BALL_R < box.right &&
       ball.y + BALL_R > box.top &&
@@ -223,7 +275,7 @@
       lungeKeeper();
 
       shot.step++;
-      var t = Math.min(1, shot.step / FLIGHT_STEPS);
+      let t = Math.min(1, shot.step / FLIGHT_STEPS);
       ball.x = shot.fromX + (shot.toX - shot.fromX) * t;
       ball.y = shot.fromY + (shot.toY - shot.fromY) * t;
 
@@ -249,26 +301,26 @@
   }
 
   function drawGoal(ctx, s) {
-    var left = GOAL_LEFT * s;
-    var right = GOAL_RIGHT * s;
-    var top = GOAL_TOP * s;
-    var bottom = GOAL_BOTTOM * s;
+    let left = GOAL_LEFT * s;
+    let right = GOAL_RIGHT * s;
+    let top = GOAL_TOP * s;
+    let bottom = GOAL_BOTTOM * s;
 
     // Net
     ctx.save();
     ctx.globalAlpha = 0.28;
     ctx.strokeStyle = A.theme.muted;
     ctx.lineWidth = Math.max(1, s * 0.002);
-    var steps = 9;
-    for (var i = 1; i < steps; i++) {
-      var x = left + ((right - left) * i) / steps;
+    let steps = 9;
+    for (let i = 1; i < steps; i++) {
+      let x = left + ((right - left) * i) / steps;
       ctx.beginPath();
       ctx.moveTo(x, top);
       ctx.lineTo(x, bottom);
       ctx.stroke();
     }
-    for (var j = 1; j < 5; j++) {
-      var y = top + ((bottom - top) * j) / 5;
+    for (let j = 1; j < 5; j++) {
+      let y = top + ((bottom - top) * j) / 5;
       ctx.beginPath();
       ctx.moveTo(left, y);
       ctx.lineTo(right, y);
@@ -298,7 +350,7 @@
   }
 
   function drawKeeper(ctx, s) {
-    var box = keeperBox();
+    let box = keeperBox();
     ctx.fillStyle = A.theme.accent;
     ctx.fillRect(
       box.left * s,
@@ -308,7 +360,7 @@
     );
 
     // Gloves, so the reach is readable at a glance.
-    var glove = KEEPER_W * 0.3;
+    let glove = KEEPER_W * 0.3;
     ctx.fillRect(
       (box.left - glove * 0.5) * s,
       (box.top + KEEPER_H * 0.18) * s,
@@ -328,7 +380,7 @@
       return;
     }
 
-    var bad = !!targetVerdict(guide);
+    let bad = !!targetVerdict(guide);
 
     ctx.save();
     ctx.globalAlpha = bad ? 0.35 : 0.75;
@@ -362,8 +414,8 @@
   }
 
   function draw() {
-    var ctx = view.ctx;
-    var s = size();
+    let ctx = view.ctx;
+    let s = size();
 
     ctx.clearRect(0, 0, view.w, view.h);
     ctx.fillStyle = A.theme.low;
@@ -391,7 +443,7 @@
   }
 
   function normalise(point) {
-    var s = size();
+    let s = size();
     return { x: point.x / s, y: point.y / s };
   }
 
@@ -409,6 +461,21 @@
       guide = null;
     },
   });
+
+  // Read-only, for the specs, same convention as the other games. The outcome
+  // of a shot is drawn on the canvas, so without this a spec cannot tell a goal
+  // from a save. Reads state and sets nothing.
+  window.Penalty = {
+    state() {
+      return {
+        goals,
+        lives,
+        phase,
+        outcome,
+        keeper: { x: keeper.x, y: keeper.y },
+      };
+    },
+  };
 
   updateHint();
 

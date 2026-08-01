@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Intercept</title>
+    <link rel="stylesheet" href="../_shared/arcade.css" />
+    <style>
+      /* Ammo is the thing you are always watching, so it gets its own slot
+         rather than being buried in the hint text. */
+      #ammo {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      #ammo.empty {
+        color: #d1594a;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="bar">
+        <div>
+          <div id="score-label">Score</div>
+          <div id="score">0</div>
+        </div>
+        <div id="hint">
+          Tap to intercept &middot; Wave <span id="wave">1</span> &middot;
+          Ammo <span id="ammo">12</span>
+        </div>
+      </div>
+
+      <div id="stage">
+        <canvas id="view"></canvas>
+        <div id="over">Game over</div>
+      </div>
+    </div>
+
+    <script src="../_shared/arcade.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>

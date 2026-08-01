@@ -16,9 +16,9 @@
 (function () {
   "use strict";
 
-  var COLOR = /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%/]+\)|hsla?\([\d\s.,%/]+\))$/i;
-  var THEME_KEYS = ["bg", "fg", "accent", "muted", "low"];
-  var FALLBACK = {
+  let COLOR = /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%/]+\)|hsla?\([\d\s.,%/]+\))$/i;
+  let THEME_KEYS = ["bg", "fg", "accent", "muted", "low"];
+  let FALLBACK = {
     bg: "#ffffff",
     fg: "#222222",
     accent: "#0088cc",
@@ -29,12 +29,12 @@
   // Values arrive in a URL, so anything that is not a plain colour is dropped
   // rather than written into a style.
   function readTheme() {
-    var params = new URLSearchParams(location.search);
-    var theme = {};
+    let params = new URLSearchParams(location.search);
+    let theme = {};
 
     THEME_KEYS.forEach(function (key) {
-      var value = (params.get(key) || "").trim();
-      var ok = value && COLOR.test(value);
+      let value = (params.get(key) || "").trim();
+      let ok = value && COLOR.test(value);
       theme[key] = ok ? value : FALLBACK[key];
       if (ok) {
         document.documentElement.style.setProperty("--" + key, value);
@@ -44,7 +44,7 @@
     return theme;
   }
 
-  var submitted = false;
+  let submitted = false;
 
   function post(message) {
     // The frame is sandboxed and has an opaque origin, so it cannot know the
@@ -65,13 +65,13 @@
   }
 
   function canvas(el) {
-    var ctx = el.getContext("2d");
-    var width = 0;
-    var height = 0;
+    let ctx = el.getContext("2d");
+    let width = 0;
+    let height = 0;
 
     function resize() {
-      var rect = el.getBoundingClientRect();
-      var dpr = window.devicePixelRatio || 1;
+      let rect = el.getBoundingClientRect();
+      let dpr = window.devicePixelRatio || 1;
 
       width = rect.width;
       height = rect.height;
@@ -84,8 +84,8 @@
     window.addEventListener("resize", resize);
 
     return {
-      ctx: ctx,
-      resize: resize,
+      ctx,
+      resize,
       get w() {
         return width;
       },
@@ -96,15 +96,15 @@
   }
 
   function onSwipe(el, handler, threshold) {
-    var limit = threshold || 20;
-    var startX = 0;
-    var startY = 0;
-    var tracking = false;
+    let limit = threshold || 20;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
 
     el.addEventListener(
       "touchstart",
       function (event) {
-        var touch = event.touches[0];
+        let touch = event.touches[0];
         startX = touch.clientX;
         startY = touch.clientY;
         tracking = true;
@@ -129,9 +129,9 @@
       }
       tracking = false;
 
-      var touch = event.changedTouches[0];
-      var dx = touch.clientX - startX;
-      var dy = touch.clientY - startY;
+      let touch = event.changedTouches[0];
+      let dx = touch.clientX - startX;
+      let dy = touch.clientY - startY;
 
       if (Math.max(Math.abs(dx), Math.abs(dy)) < limit) {
         return;
@@ -145,7 +145,7 @@
     });
   }
 
-  var KEYMAP = {
+  let KEYMAP = {
     ArrowLeft: "left",
     ArrowRight: "right",
     ArrowUp: "up",
@@ -162,7 +162,7 @@
 
   function onKeys(handler) {
     window.addEventListener("keydown", function (event) {
-      var dir = KEYMAP[event.key];
+      let dir = KEYMAP[event.key];
       if (!dir) {
         return;
       }
@@ -172,7 +172,7 @@
   }
 
   function ratioAcross(el, clientX) {
-    var rect = el.getBoundingClientRect();
+    let rect = el.getBoundingClientRect();
     if (rect.width <= 0) {
       return 0.5;
     }
@@ -192,7 +192,7 @@
   }
 
   function localPoint(el, event) {
-    var rect = el.getBoundingClientRect();
+    let rect = el.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
 
@@ -204,7 +204,7 @@
   }
 
   function onAim(el, opts) {
-    var from = null;
+    let from = null;
 
     el.addEventListener("pointerdown", function (event) {
       from = localPoint(el, event);
@@ -215,7 +215,7 @@
       if (el.setPointerCapture) {
         try {
           el.setPointerCapture(event.pointerId);
-        } catch (e) {
+        } catch {
           // Aiming still works without capture.
         }
       }
@@ -239,7 +239,7 @@
       if (!from) {
         return;
       }
-      var start = from;
+      let start = from;
       from = null;
       if (opts.onRelease) {
         opts.onRelease(start, localPoint(el, event));
@@ -257,19 +257,19 @@
 
   // A fixed-step loop, so game speed does not depend on frame rate.
   function loop(stepMsGetter, step, draw) {
-    var last = null;
-    var acc = 0;
+    let last = null;
+    let acc = 0;
 
     function frame(now) {
       if (last === null) {
         last = now;
       }
-      var delta = Math.min(250, now - last);
+      let delta = Math.min(250, now - last);
       last = now;
       acc += delta;
 
-      var stepMs = stepMsGetter();
-      var guard = 0;
+      let stepMs = stepMsGetter();
+      let guard = 0;
       while (acc >= stepMs && guard < 10) {
         acc -= stepMs;
         guard++;
@@ -286,14 +286,14 @@
 
   window.Arcade = {
     theme: readTheme(),
-    ready: ready,
-    submit: submit,
-    canvas: canvas,
-    onSwipe: onSwipe,
-    onKeys: onKeys,
-    onDrag: onDrag,
-    onAim: onAim,
-    onTap: onTap,
-    loop: loop,
+    ready,
+    submit,
+    canvas,
+    onSwipe,
+    onKeys,
+    onDrag,
+    onAim,
+    onTap,
+    loop,
   };
 })();

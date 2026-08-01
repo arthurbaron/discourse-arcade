@@ -23,13 +23,15 @@ bin/rake arcade:seed
 | `2048` | points | swipe, arrows, WASD |
 | `snake` | points | swipe, arrows, WASD |
 | `breakout` | points | drag anywhere, arrows |
-| `penalty` | goals | drag from the ball to aim and shoot |
+| `penalty` | goals | click or drag anywhere in the goal |
 | `keepie` | touches | tap the ball |
 | `dribble` | metres | slide to steer, arrows |
 | `holdtheline` | points | slide to move, arrows; fire is automatic |
+| `recall` | rounds | tap the pads |
+| `intercept` | points | tap to place a blast |
 | `debris` | points | hold to steer and thrust, arrows; fire is automatic |
 
-All eight are built for a square frame.
+All ten are built for a square frame.
 
 ## Adding a game
 
@@ -57,10 +59,20 @@ game.
 
 ### Test hooks
 
-Three games expose a small read-only object so a spec can check the thing that
-"it ends and reports a score" cannot: `window.Game2048.collapse` for the merge
-rules, `window.Keepie.state()` to tap the ball accurately, and
-`window.Dribble.buildRow` to prove every row leaves a passable gap.
+Most games expose a small read-only object so a spec can check the thing that
+"it ends and reports a score" cannot:
+
+- `window.Game2048.collapse` for the merge rules.
+- `window.Keepie.state()` to tap the ball accurately.
+- `window.Dribble.buildRow` to prove every row leaves a passable gap.
+- `window.Penalty.state()` for the keeper's position and the outcome of a shot,
+  which is drawn on the canvas and so invisible to a spec otherwise.
+- `window.Recall.state()` for the sequence, since a spec cannot watch pads flash.
+- `window.Intercept.state()` for the incoming tracks, so a spec can lead a shot
+  the way a player has to.
+- `window.Debris.state()` to steer at a real rock. A stationary ship auto-fires
+  and destroys the rocks that would have hit it, so a spec that waits to be hit
+  can wait forever, and one did.
 
 These read state or generate a row; none of them set a score. A player already
 has the whole game in front of them in view-source, and scores are validated
@@ -124,6 +136,49 @@ as cheating pays out coins, the incentive to cheat gets a lot stronger.
 | `arcade_run_token_ttl_minutes` | 180 | How long a run stays redeemable |
 | `arcade_leaderboard_size` | 10 | Rows on a game leaderboard |
 
+## Record flair
+
+With `arcade_show_record_flair` on, anyone currently holding first place on a
+game gets a trophy and a count next to their name on every post, linking to
+`/arcade`, with the games named in the tooltip.
+
+The count is one glyph plus a number rather than one glyph per record: the post
+header is already a full line, and a fixed width keeps it from pushing the
+timestamp around on a phone.
+
+`ArcadeRecordHolders` is what makes this cheap. The set of record holders is
+tiny and global, at most one person per game forum-wide, so it is built once,
+cached, and every post does a hash lookup instead of a query. The cache is
+cleared when a score is submitted, when a score is removed, and when a game is
+saved. The serializer leaves the field off the post entirely for anyone holding
+nothing, so almost every post carries nothing extra.
+
+**The setting is off by default.** It renders on every post, so it gets switched
+on deliberately and can be switched straight back off from admin without a
+rebuild.
+
+**This feature needs current Discourse.** It renders through the
+`post-meta-data-poster-name` plugin outlet, which does not exist in the 3.2-era
+checkout, so `spec/system/record_flair_spec.rb` fails there. Everything else in
+the plugin still passes on both. Run the suite against current Discourse from
+`~/discourse-next`:
+
+```bash
+PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH" LOAD_PLUGINS=1 \
+  RAILS_DB=discourse_next_test bin/rspec plugins/discourse-arcade/spec
+```
+
+Two things must be rebuilt there after editing frontend files, and forgetting
+either one looks exactly like broken code: `rake assets:precompile:build_plugins`
+after JS or `.gjs` changes, and `rake assets:precompile:css` after stylesheet
+changes.
+
+One trap worth remembering: `post-meta-data-poster-name` is a *wrapper* outlet.
+`renderInOutlet` replaces its content, which silently removes the username from
+every post on the forum. Use `renderAfterWrapperOutlet`. The spec asserts both
+usernames are still on the page, because a spec that only checks the flair
+appeared passes happily while the names are gone.
+
 ## Discourse version notes
 
 Written against 3.2-era plugin conventions, and verified working on
@@ -132,23 +187,114 @@ under `assets/javascripts` are still compiled automatically, and classic
 `@ember/component`, `*-route-map.js`, plugin `controllers/`, `{{eq}}`,
 `inject as service`, `ajax` and `dialog.yesNoConfirm` all still resolve.
 
-Two deliberate choices come out of that:
+`{{d-icon}}` works in a plugin `.hbs` on both versions. That is worth stating
+because it is easy to conclude otherwise: current Discourse has no
+`app/helpers/d-icon.js` and none of its own shipped `.hbs` templates use the
+helper, since they have all moved to `.gjs` and import it. Neither fact means the
+ambient helper is gone. `discourse-bookie` uses `{{d-icon}}` in six places and
+runs fine on `v2026.8.0-latest`. Absence of use is not absence of support, and
+`{{fa-icon}}` is only a deprecated alias for the same thing.
 
-- Icons use `{{fa-icon "…"}}` rather than `{{d-icon}}`. Current Discourse
-  has no ambient `d-icon` helper, only an importable one for `.gjs`, and an
-  unresolved helper in a classic template takes the whole page down rather than
-  just dropping the glyph. `fa-icon` exists in both old and current Discourse
-  and renders the same sprite with the same `d-icon` CSS classes. It logs a
-  deprecation warning in the console, which is the price of one file working
-  across both.
+**Run frontend specs in `~/discourse-next`, not the old checkout.** The old
+checkout serves a cached frontend build to its specs and does not rebuild it when
+a template changes, so a frontend assertion there can pass or fail against code
+that is no longer in the file. It was still rendering a `d-icon-gamepad` in the
+heading long after that markup was replaced. Its Ruby specs are trustworthy; its
+frontend ones are not.
+
+Two smaller notes on running the linters from `~/discourse-next`: eslint there
+reports the classic component in `arcade-frame.js`, and rubocop there wants
+newer fabricator shorthand in the specs. Both are deliberate. The shorthand in
+particular would break every spec on the older checkout, which still runs this
+plugin locally, for the sake of a style cop.
+
+One deliberate choice remains:
+
 - The frontend is not `.gjs`. Discourse's own plugins have moved over, and a
   future port would drop the deprecation and let icons and truth helpers be
   imported properly. Around seven files: the three route templates, the frame
   component, and the nesting of the route and controller files. The Ruby side,
   the data model, the stylesheet and all six games are unaffected.
 
-The arcade uses `gamepad` for its own heading and `star` for a new personal
-best. The trophy is Bookie's mark and is deliberately left alone.
+The arcade heading uses a real 🎮 emoji rather than a sprite icon, to match
+Bookie's 🏆 heading. That means it renders in each platform's own emoji font, so
+it looks slightly different per device: the cost of matching Bookie. A `star`
+marks a new personal best, and the trophy is the record flair.
+
+## Penalty, and tuning by measurement
+
+The keeper is the whole game, and the first version got it wrong in a way no
+spec caught: he stood on the goal line and only moved sideways, so his hitbox
+covered the bottom half of the goal and nothing else. Either top corner was a
+certain goal. On a desktop you could click the same spot every time and never
+miss.
+
+He now dives in both axes towards the ball, from wherever the patrol has left
+him, and how far he gets in the remaining flight time decides it. Shot accuracy
+also falls off the further from the middle you aim, so a corner is ambitious
+rather than free.
+
+The numbers came from measuring rather than guessing, with a throwaway spec that
+fired shots and counted outcomes. Worth repeating that way if the balance ever
+needs revisiting, because two rounds of tuning by feel were both wrong: the
+first left corners at 78% and the second made the keeper unbeatable. Where it
+landed, at the start of a run:
+
+| Shot | Goals |
+| --- | --- |
+| Top corner, no attention to the keeper | ~20% |
+| Top corner, taken while he is at the far post | ~70% |
+| Straight down the middle | ~0% |
+
+Roughly 15% of corner attempts miss the target altogether, which is the price of
+aiming there. `penalty_keeper_spec.rb` pins the two things that must stay true:
+he leaves the ground for a high shot, and a shot straight at him is saved.
+
+## Do not remove the gamepad icon registration
+
+`plugin.rb` registers `gamepad` and nothing in the plugin renders it, so it looks
+like dead code. It is not. Admins pick that icon for the sidebar link to
+`/arcade`, and sidebar link icons are not one of the sources that fill the SVG
+sprite, so the registration here is the only thing keeping it available. It was
+removed once when the heading moved to an emoji, and the sidebar link quietly
+lost its glyph and became unselectable. `spec/icons_spec.rb` guards it.
+
+## Recall and sound
+
+Simon is as much a tune as it is four colours, so the pads play notes. They are
+generated with an oscillator rather than loaded as files, which keeps the game
+self-contained.
+
+Audio needs a gesture inside the frame before a browser will allow it, and the
+gesture in the host page does not count. That is what the "Tap to begin" panel
+is for: it unlocks the sound and starts round one in the same tap, so nobody
+opens the arcade and is ambushed by beeping. There is a mute toggle in the bar,
+which resets each run because a sandboxed frame has no storage to remember it in.
+
+The four pads use two explicit colours each rather than one colour plus opacity.
+Dimming with opacity blends into the page behind it, which left all four looking
+washed out on a light theme.
+
+Colour is never the only cue. Each pad keeps its own corner and its own note, so
+the game does not depend on telling four hues apart.
+
+## Intercept and leading the shot
+
+Two rules carry this one, and both are worth leaving alone.
+
+Ammo is capped per wave and refills between them. Without that you tap your way
+out of every situation and the game has no shape; with it you have to hold fire
+until several missiles line up. Running dry mid-wave and watching the rest land
+is the point, not a bug.
+
+The battery sits on the ground and its counter-missile has to fly up, so you aim
+where a missile is going rather than where it is. Nothing connects otherwise,
+which is why `intercept_spec.rb` has to solve for the intercept point by fixed
+point iteration before it can fire: a spec that taps at a missile's current
+position never hits anything and would pass while the game was broken.
+
+A destroyed missile explodes in turn, so a well placed blast unzips a cluster.
+That chain is where the scores come from.
 
 ## Known limits
 

@@ -8,48 +8,48 @@
 (function () {
   "use strict";
 
-  var A = window.Arcade;
+  let A = window.Arcade;
 
-  var STEP_MS = 16;
+  let STEP_MS = 16;
 
-  var PLAYER_Y = 0.82;
-  var PLAYER_R = 0.032;
-  var DEF_R = 0.036;
-  var FOLLOW = 0.35;
-  var KEY_NUDGE = 0.07;
+  let PLAYER_Y = 0.82;
+  let PLAYER_R = 0.032;
+  let DEF_R = 0.036;
+  let FOLLOW = 0.35;
+  let KEY_NUDGE = 0.07;
 
-  var BASE_SPEED = 0.0075;
-  var MAX_SPEED = 0.021;
-  var SPEED_OVER = 400; // metres over which speed doubles
-  var METRES_PER_UNIT = 20;
+  let BASE_SPEED = 0.0075;
+  let MAX_SPEED = 0.021;
+  let SPEED_OVER = 400; // metres over which speed doubles
+  let METRES_PER_UNIT = 20;
 
-  var ROW_SPACING_START = 0.42;
-  var ROW_SPACING_MIN = 0.3;
-  var ROW_TIGHTEN_OVER = 1500;
+  let ROW_SPACING_START = 0.42;
+  let ROW_SPACING_MIN = 0.3;
+  let ROW_TIGHTEN_OVER = 1500;
 
   // Half the width of the gap left open in every row. Even at its narrowest
   // this is more than twice the player, so there is always a way through.
-  var GAP_HALF_START = 0.115;
-  var GAP_HALF_MIN = 0.075;
-  var GAP_TIGHTEN_OVER = 1200;
+  let GAP_HALF_START = 0.115;
+  let GAP_HALF_MIN = 0.075;
+  let GAP_TIGHTEN_OVER = 1200;
 
-  var LINE_SPACING = 0.25;
+  let LINE_SPACING = 0.25;
 
   // Semantic rather than themed: defenders have to read as danger in both a
   // light and a dark colour scheme.
-  var DANGER = "#d1594a";
+  let DANGER = "#d1594a";
 
-  var stage = document.getElementById("stage");
-  var view = A.canvas(document.getElementById("view"));
-  var scoreEl = document.getElementById("score");
-  var overEl = document.getElementById("over");
+  let stage = document.getElementById("stage");
+  let view = A.canvas(document.getElementById("view"));
+  let scoreEl = document.getElementById("score");
+  let overEl = document.getElementById("over");
 
-  var player = { x: 0.5, target: 0.5 };
-  var defenders = [];
-  var scroll = 0;
-  var nextRowAt = 0.5;
-  var metres = 0;
-  var alive = true;
+  let player = { x: 0.5, target: 0.5 };
+  let defenders = [];
+  let scroll = 0;
+  let nextRowAt = 0.5;
+  let metres = 0;
+  let alive = true;
 
   function size() {
     return Math.min(view.w, view.h);
@@ -68,17 +68,17 @@
   }
 
   function rowSpacing() {
-    var t = Math.min(1, metres / ROW_TIGHTEN_OVER);
+    let t = Math.min(1, metres / ROW_TIGHTEN_OVER);
     return ROW_SPACING_START + (ROW_SPACING_MIN - ROW_SPACING_START) * t;
   }
 
   function gapHalf() {
-    var t = Math.min(1, metres / GAP_TIGHTEN_OVER);
+    let t = Math.min(1, metres / GAP_TIGHTEN_OVER);
     return GAP_HALF_START + (GAP_HALF_MIN - GAP_HALF_START) * t;
   }
 
   function placeDefender(into, from, to) {
-    var width = to - from;
+    let width = to - from;
     if (width < DEF_R * 2) {
       return;
     }
@@ -88,22 +88,22 @@
   // Pick where the gap is first, then fill what is left. That is what makes
   // every row passable by construction rather than by luck.
   function buildRow(half) {
-    var margin = 0.02;
-    var low = half + margin;
-    var high = 1 - half - margin;
-    var gapCentre = low + Math.random() * (high - low);
-    var xs = [];
+    let margin = 0.02;
+    let low = half + margin;
+    let high = 1 - half - margin;
+    let gapCentre = low + Math.random() * (high - low);
+    let xs = [];
 
     placeDefender(xs, 0, gapCentre - half);
     placeDefender(xs, gapCentre + half, 1);
 
-    return { gapCentre: gapCentre, xs: xs };
+    return { gapCentre, xs };
   }
 
   function spawnRow() {
-    var row = buildRow(gapHalf());
+    let row = buildRow(gapHalf());
 
-    for (var i = 0; i < row.xs.length; i++) {
+    for (let i = 0; i < row.xs.length; i++) {
       defenders.push({ x: row.xs[i], y: -DEF_R });
     }
   }
@@ -119,7 +119,7 @@
       return;
     }
 
-    var v = speed();
+    let v = speed();
     scroll += v;
     metres += v * METRES_PER_UNIT;
     scoreEl.textContent = String(Math.floor(metres));
@@ -131,10 +131,10 @@
       nextRowAt = scroll + rowSpacing();
     }
 
-    var reach = PLAYER_R + DEF_R;
+    let reach = PLAYER_R + DEF_R;
 
-    for (var i = defenders.length - 1; i >= 0; i--) {
-      var defender = defenders[i];
+    for (let i = defenders.length - 1; i >= 0; i--) {
+      let defender = defenders[i];
       defender.y += v;
 
       if (defender.y - DEF_R > 1) {
@@ -142,8 +142,8 @@
         continue;
       }
 
-      var dx = defender.x - player.x;
-      var dy = defender.y - PLAYER_Y;
+      let dx = defender.x - player.x;
+      let dy = defender.y - PLAYER_Y;
 
       if (dx * dx + dy * dy < reach * reach) {
         finish();
@@ -153,8 +153,8 @@
   }
 
   function draw() {
-    var ctx = view.ctx;
-    var s = size();
+    let ctx = view.ctx;
+    let s = size();
 
     ctx.clearRect(0, 0, view.w, view.h);
     ctx.fillStyle = A.theme.low;
@@ -165,7 +165,7 @@
     ctx.globalAlpha = 0.3;
     ctx.strokeStyle = A.theme.muted;
     ctx.lineWidth = Math.max(1, s * 0.003);
-    for (var y = -(scroll % LINE_SPACING); y <= 1; y += LINE_SPACING) {
+    for (let y = -(scroll % LINE_SPACING); y <= 1; y += LINE_SPACING) {
       ctx.beginPath();
       ctx.moveTo(0, y * s);
       ctx.lineTo(s, y * s);
@@ -174,7 +174,7 @@
     ctx.restore();
 
     ctx.fillStyle = DANGER;
-    for (var i = 0; i < defenders.length; i++) {
+    for (let i = 0; i < defenders.length; i++) {
       ctx.beginPath();
       ctx.arc(defenders[i].x * s, defenders[i].y * s, DEF_R * s, 0, Math.PI * 2);
       ctx.fill();
@@ -186,7 +186,7 @@
     ctx.fill();
 
     // The ball sits at their feet and leans the way they are moving.
-    var lean = clamp((player.target - player.x) * 1.6, -PLAYER_R, PLAYER_R);
+    let lean = clamp((player.target - player.x) * 1.6, -PLAYER_R, PLAYER_R);
     ctx.fillStyle = A.theme.accent;
     ctx.beginPath();
     ctx.arc(
@@ -203,9 +203,9 @@
   // leave a gap the player fits through. Read-only row generation, and scores
   // are validated server side regardless.
   window.Dribble = {
-    buildRow: buildRow,
+    buildRow,
     gapHalfAt: function (atMetres) {
-      var t = Math.min(1, atMetres / GAP_TIGHTEN_OVER);
+      let t = Math.min(1, atMetres / GAP_TIGHTEN_OVER);
       return GAP_HALF_START + (GAP_HALF_MIN - GAP_HALF_START) * t;
     },
     sizes: { player: PLAYER_R, defender: DEF_R },

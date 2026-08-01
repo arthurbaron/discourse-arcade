@@ -12,6 +12,10 @@ class ArcadeGame < ActiveRecord::Base
 
   scope :listed, -> { where(enabled: true).order(position: :asc, name: :asc) }
 
+  # Enabling, disabling or renaming a game changes who holds what, and the
+  # seed task goes through here too.
+  after_commit { ArcadeRecordHolders.clear! }
+
   def higher_is_better?
     score_direction == "high"
   end

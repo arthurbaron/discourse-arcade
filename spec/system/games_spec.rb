@@ -156,11 +156,92 @@ RSpec.describe "Arcade games", type: :system do
     expect(expect_single_score).to be >= 0
   end
 
-  it "Debris reports a score when the ship is left drifting" do
+  it "Recall counts the rounds repeated before a wrong pad" do
+    open_game("recall/index.html")
+
+    # Pads flash rather than sit still, so a spec reads the sequence and plays it
+    # back. Three rounds correctly, then a deliberately wrong pad.
+    page.execute_script(<<~JS)
+      (function () {
+        const TARGET = 3;
+        const pads = document.getElementsByClassName("pad");
+
+        function tap(el) {
+          el.dispatchEvent(new PointerEvent("pointerdown", {
+            pointerId: 1, pointerType: "touch", bubbles: true, cancelable: true
+          }));
+        }
+
+        tap(document.getElementById("begin"));
+
+        function tick() {
+          const s = window.Recall.state();
+          if (s.phase === "over") { return; }
+
+          if (s.phase === "input") {
+            if (s.score >= TARGET) {
+              // Anything other than the pad it wants.
+              tap(pads[(s.sequence[s.expected] + 1) % 4]);
+              return;
+            }
+            for (let i = s.expected; i < s.sequence.length; i++) {
+              tap(pads[s.sequence[i]]);
+            }
+          }
+
+          setTimeout(tick, 60);
+        }
+
+        setTimeout(tick, 60);
+      })();
+    JS
+
+    expect(expect_single_score).to eq(3)
+  end
+
+  it "Intercept reports a score once every city is gone" do
+    open_game("intercept/index.html")
+
+    # No taps at all, so the waves land unopposed until the last city falls.
+    expect(expect_single_score).to be >= 0
+  end
+
+  it "Debris reports a score when the ship is flown into the rocks" do
     open_game("debris/index.html")
 
-    # Firing is automatic, so a motionless ship still breaks rocks, and the
-    # rocks wrap around until one of them finds it.
+    # A stationary ship auto-fires and clears the rocks that would have hit it,
+    # so waiting for a collision can take forever. Steer at the nearest rock
+    # instead, which also exercises the real steering and collision code.
+    page.execute_script(<<~JS)
+      (function () {
+        const stage = document.getElementById("stage");
+        const r = stage.getBoundingClientRect();
+
+        function send(type, x, y) {
+          stage.dispatchEvent(new PointerEvent(type, {
+            clientX: r.left + r.width * x,
+            clientY: r.top + r.height * y,
+            pointerId: 1, pointerType: "touch", bubbles: true, cancelable: true
+          }));
+        }
+
+        setInterval(function () {
+          const s = window.Debris.state();
+          if (!s.rocks.length) { return; }
+
+          let best = s.rocks[0];
+          let bestD = Infinity;
+          s.rocks.forEach(function (rock) {
+            const d = Math.hypot(rock.x - s.ship.x, rock.y - s.ship.y);
+            if (d < bestD) { bestD = d; best = rock; }
+          });
+
+          send("pointerdown", best.x, best.y);
+          send("pointermove", best.x, best.y);
+        }, 120);
+      })();
+    JS
+
     expect(expect_single_score).to be >= 0
   end
 

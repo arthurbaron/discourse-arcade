@@ -40,7 +40,19 @@ class ArcadeScoreSubmission
     end
 
     elapsed = run.elapsed_seconds
-    return failure("That run was too short to be real") if elapsed < game.min_run_seconds
+
+    # A run that produced nothing needs no minimum. Losing in a second is
+    # ordinary play in several of these games: Keepie Uppie is over in about a
+    # second if you never touch the ball, and Dribble in two if you steer into
+    # the first defender. Rejecting those threw away real runs and told the
+    # player their score was fake, which is how this was reported.
+    if score.positive? && elapsed < game.min_run_seconds
+      return(
+        failure(
+          "That score arrived quicker than the game allows, so it was not saved.",
+        )
+      )
+    end
 
     record = nil
 
@@ -58,6 +70,9 @@ class ArcadeScoreSubmission
           duration_seconds: elapsed,
         )
     end
+
+    # A new score may have taken a first place, so the cached holders are stale.
+    ArcadeRecordHolders.clear!
 
     Result.new(success: true, score: record)
   rescue ActiveRecord::RecordNotUnique

@@ -11,41 +11,41 @@
 (function () {
   "use strict";
 
-  var A = window.Arcade;
+  let A = window.Arcade;
 
-  var STEP_MS = 16;
-  var START_LIVES = 3;
-  var TAU = Math.PI * 2;
+  let STEP_MS = 16;
+  let START_LIVES = 3;
+  let TAU = Math.PI * 2;
 
-  var SHIP_R = 0.026;
-  var THRUST = 0.00058;
-  var DRAG = 0.9945;
-  var MAX_SPEED = 0.0145;
-  var TURN_RATE = 0.075;
-  var KEY_THRUST_STEPS = 8;
+  let SHIP_R = 0.026;
+  let THRUST = 0.00058;
+  let DRAG = 0.9945;
+  let MAX_SPEED = 0.0145;
+  let TURN_RATE = 0.075;
+  let KEY_THRUST_STEPS = 8;
 
-  var SHOT_SPEED = 0.019;
-  var SHOT_LIFE = 52;
-  var MAX_SHOTS = 4;
-  var FIRE_EVERY = 11;
+  let SHOT_SPEED = 0.019;
+  let SHOT_LIFE = 52;
+  let MAX_SHOTS = 4;
+  let FIRE_EVERY = 11;
 
   // size 3 splits into two 2s, a 2 into two 1s, a 1 is gone.
-  var SIZES = {
+  let SIZES = {
     3: { r: 0.075, points: 20 },
     2: { r: 0.045, points: 50 },
     1: { r: 0.026, points: 100 },
   };
 
-  var RESPAWN_STEPS = 70;
-  var SAFE_RADIUS = 0.17;
+  let RESPAWN_STEPS = 70;
+  let SAFE_RADIUS = 0.17;
 
-  var stage = document.getElementById("stage");
-  var view = A.canvas(document.getElementById("view"));
-  var scoreEl = document.getElementById("score");
-  var hintEl = document.getElementById("hint");
-  var overEl = document.getElementById("over");
+  let stage = document.getElementById("stage");
+  let view = A.canvas(document.getElementById("view"));
+  let scoreEl = document.getElementById("score");
+  let hintEl = document.getElementById("hint");
+  let overEl = document.getElementById("over");
 
-  var ship = {
+  let ship = {
     x: 0.5,
     y: 0.5,
     vx: 0,
@@ -55,15 +55,15 @@
     thrusting: false,
   };
 
-  var shots = [];
-  var rocks = [];
-  var score = 0;
-  var lives = START_LIVES;
-  var wave = 0;
-  var alive = true;
-  var fireTimer = 0;
-  var respawn = 0;
-  var keyThrust = 0;
+  let shots = [];
+  let rocks = [];
+  let score = 0;
+  let lives = START_LIVES;
+  let wave = 0;
+  let alive = true;
+  let fireTimer = 0;
+  let respawn = 0;
+  let keyThrust = 0;
 
   function size() {
     return Math.min(view.w, view.h);
@@ -82,7 +82,7 @@
   // Shortest distance on a wrapping field, so a rock just over the edge is
   // still close.
   function delta(a, b) {
-    var d = a - b;
+    let d = a - b;
     if (d > 0.5) {
       d -= 1;
     } else if (d < -0.5) {
@@ -92,30 +92,30 @@
   }
 
   function makeShape() {
-    var points = [];
-    var count = 9;
-    for (var i = 0; i < count; i++) {
+    let points = [];
+    let count = 9;
+    for (let i = 0; i < count; i++) {
       points.push(0.72 + Math.random() * 0.42);
     }
     return points;
   }
 
   function rockSpeed(sizeKey) {
-    var base = 0.0021 * (1 + 0.11 * (wave - 1));
-    var nimble = sizeKey === 3 ? 1 : sizeKey === 2 ? 1.35 : 1.75;
+    let base = 0.0021 * (1 + 0.11 * (wave - 1));
+    let nimble = sizeKey === 3 ? 1 : sizeKey === 2 ? 1.35 : 1.75;
     return base * nimble;
   }
 
   function spawnRock(sizeKey, x, y) {
-    var angle = Math.random() * TAU;
-    var speed = rockSpeed(sizeKey);
+    let angle = Math.random() * TAU;
+    let speed = rockSpeed(sizeKey);
 
     rocks.push({
-      x: x,
-      y: y,
+      x,
+      y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      sizeKey: sizeKey,
+      sizeKey,
       r: SIZES[sizeKey].r,
       shape: makeShape(),
       rot: Math.random() * TAU,
@@ -125,13 +125,13 @@
 
   function nextWave() {
     wave++;
-    var count = Math.min(9, 3 + wave);
+    let count = Math.min(9, 3 + wave);
 
-    for (var i = 0; i < count; i++) {
+    for (let i = 0; i < count; i++) {
       // Keep the opening rocks off the middle so a fresh wave is survivable.
-      var x;
-      var y;
-      var tries = 0;
+      let x;
+      let y;
+      let tries = 0;
       do {
         x = Math.random();
         y = Math.random();
@@ -165,9 +165,9 @@
   }
 
   function centreIsClear() {
-    for (var i = 0; i < rocks.length; i++) {
-      var rock = rocks[i];
-      var d = Math.hypot(delta(rock.x, 0.5), delta(rock.y, 0.5));
+    for (let i = 0; i < rocks.length; i++) {
+      let rock = rocks[i];
+      let d = Math.hypot(delta(rock.x, 0.5), delta(rock.y, 0.5));
       if (d < SAFE_RADIUS + rock.r) {
         return false;
       }
@@ -196,7 +196,7 @@
   }
 
   function turnTowards(current, target) {
-    var diff = target - current;
+    let diff = target - current;
     while (diff > Math.PI) {
       diff -= TAU;
     }
@@ -224,7 +224,7 @@
   }
 
   function splitRock(index) {
-    var rock = rocks[index];
+    let rock = rocks[index];
     addScore(SIZES[rock.sizeKey].points);
     rocks.splice(index, 1);
 
@@ -232,8 +232,8 @@
       return;
     }
 
-    var smaller = rock.sizeKey - 1;
-    for (var i = 0; i < 2; i++) {
+    let smaller = rock.sizeKey - 1;
+    for (let i = 0; i < 2; i++) {
       spawnRock(smaller, rock.x, rock.y);
     }
   }
@@ -253,7 +253,7 @@
     ship.vx *= DRAG;
     ship.vy *= DRAG;
 
-    var speed = Math.hypot(ship.vx, ship.vy);
+    let speed = Math.hypot(ship.vx, ship.vy);
     if (speed > MAX_SPEED) {
       ship.vx = (ship.vx / speed) * MAX_SPEED;
       ship.vy = (ship.vy / speed) * MAX_SPEED;
@@ -264,8 +264,8 @@
   }
 
   function advanceShots() {
-    for (var i = shots.length - 1; i >= 0; i--) {
-      var shot = shots[i];
+    for (let i = shots.length - 1; i >= 0; i--) {
+      let shot = shots[i];
       shot.life--;
 
       if (shot.life <= 0) {
@@ -276,9 +276,9 @@
       shot.x = wrap(shot.x + shot.vx);
       shot.y = wrap(shot.y + shot.vy);
 
-      for (var j = rocks.length - 1; j >= 0; j--) {
-        var rock = rocks[j];
-        var d = Math.hypot(delta(shot.x, rock.x), delta(shot.y, rock.y));
+      for (let j = rocks.length - 1; j >= 0; j--) {
+        let rock = rocks[j];
+        let d = Math.hypot(delta(shot.x, rock.x), delta(shot.y, rock.y));
 
         if (d < rock.r) {
           shots.splice(i, 1);
@@ -290,8 +290,8 @@
   }
 
   function advanceRocks() {
-    for (var i = 0; i < rocks.length; i++) {
-      var rock = rocks[i];
+    for (let i = 0; i < rocks.length; i++) {
+      let rock = rocks[i];
       rock.x = wrap(rock.x + rock.vx);
       rock.y = wrap(rock.y + rock.vy);
       rock.rot += rock.spin;
@@ -303,9 +303,9 @@
       return;
     }
 
-    for (var i = 0; i < rocks.length; i++) {
-      var rock = rocks[i];
-      var d = Math.hypot(delta(ship.x, rock.x), delta(ship.y, rock.y));
+    for (let i = 0; i < rocks.length; i++) {
+      let rock = rocks[i];
+      let d = Math.hypot(delta(ship.x, rock.x), delta(ship.y, rock.y));
 
       if (d < rock.r + SHIP_R * 0.75) {
         loseLife();
@@ -351,11 +351,11 @@
 
   function drawRock(ctx, s, rock) {
     ctx.beginPath();
-    for (var i = 0; i < rock.shape.length; i++) {
-      var angle = rock.rot + (i / rock.shape.length) * TAU;
-      var radius = rock.r * rock.shape[i];
-      var px = (rock.x + Math.cos(angle) * radius) * s;
-      var py = (rock.y + Math.sin(angle) * radius) * s;
+    for (let i = 0; i < rock.shape.length; i++) {
+      let angle = rock.rot + (i / rock.shape.length) * TAU;
+      let radius = rock.r * rock.shape[i];
+      let px = (rock.x + Math.cos(angle) * radius) * s;
+      let py = (rock.y + Math.sin(angle) * radius) * s;
       if (i === 0) {
         ctx.moveTo(px, py);
       } else {
@@ -367,14 +367,14 @@
   }
 
   function drawShip(ctx, s) {
-    var hidden = respawn > 0 && Math.floor(respawn / 6) % 2 === 0;
+    let hidden = respawn > 0 && Math.floor(respawn / 6) % 2 === 0;
     if (hidden) {
       return;
     }
 
-    var nose = ship.heading;
-    var left = ship.heading + 2.5;
-    var right = ship.heading - 2.5;
+    let nose = ship.heading;
+    let left = ship.heading + 2.5;
+    let right = ship.heading - 2.5;
 
     ctx.beginPath();
     ctx.moveTo(
@@ -397,7 +397,7 @@
     }
 
     // A short flame out of the back, so holding reads as thrusting.
-    var back = ship.heading + Math.PI;
+    let back = ship.heading + Math.PI;
     ctx.beginPath();
     ctx.moveTo(
       (ship.x + Math.cos(back) * SHIP_R * 0.6) * s,
@@ -411,8 +411,8 @@
   }
 
   function draw() {
-    var ctx = view.ctx;
-    var s = size();
+    let ctx = view.ctx;
+    let s = size();
 
     ctx.clearRect(0, 0, view.w, view.h);
     ctx.fillStyle = A.theme.low;
@@ -424,12 +424,12 @@
     // Outlines rather than fills, which is both the look of the original and
     // the safest thing across light and dark themes.
     ctx.strokeStyle = A.theme.fg;
-    for (var i = 0; i < rocks.length; i++) {
+    for (let i = 0; i < rocks.length; i++) {
       drawRock(ctx, s, rocks[i]);
     }
 
     ctx.fillStyle = A.theme.fg;
-    for (var k = 0; k < shots.length; k++) {
+    for (let k = 0; k < shots.length; k++) {
       ctx.beginPath();
       ctx.arc(shots[k].x * s, shots[k].y * s, s * 0.006, 0, TAU);
       ctx.fill();
@@ -441,9 +441,9 @@
   }
 
   function aimAt(point) {
-    var s = size();
-    var dx = point.x / s - ship.x;
-    var dy = point.y / s - ship.y;
+    let s = size();
+    let dx = point.x / s - ship.x;
+    let dy = point.y / s - ship.y;
 
     if (Math.hypot(dx, dy) < 0.01) {
       return;
@@ -477,6 +477,22 @@
       keyThrust = KEY_THRUST_STEPS;
     }
   });
+
+  // Read-only, for the specs, same convention as the other games. A stationary
+  // ship auto-fires and shoots away the very rocks that would hit it, so a spec
+  // cannot rely on drifting into one; it needs to steer at a real target. This
+  // reads state and sets nothing.
+  window.Debris = {
+    state() {
+      return {
+        ship: { x: ship.x, y: ship.y },
+        rocks: rocks.map(function (rock) {
+          return { x: rock.x, y: rock.y, r: rock.r };
+        }),
+        lives,
+      };
+    },
+  };
 
   updateHint();
   nextWave();

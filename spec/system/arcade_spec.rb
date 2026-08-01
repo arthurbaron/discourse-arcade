@@ -28,9 +28,7 @@ RSpec.describe "Arcade", type: :system do
 
     expect(page).to have_css(".arcade-index")
 
-    # The icon has to actually resolve to a sprite symbol. A name FontAwesome
-    # has dropped renders an empty box rather than failing loudly.
-    expect(page).to have_css(".arcade-head h1 svg.d-icon-gamepad")
+    expect(find(".arcade-head h1")).to have_text("🎮")
 
     expect(page).to have_css(".arcade-card", count: 1)
     expect(page).to have_content("Test Game")
@@ -70,12 +68,19 @@ RSpec.describe "Arcade", type: :system do
       JS
     end
 
-    expect(page).to have_css(".arcade-frame-score")
+    # The score goes out over postMessage and then to the server before this
+    # appears, so it needs more room than the default wait when the whole suite
+    # is competing for the machine.
+    expect(page).to have_css(".arcade-frame-score", wait: 20)
     expect(page).to have_button("Play again")
 
     # A first score is always a personal best, so the badge and its star show.
     expect(page).to have_css(".arcade-frame-badge svg.d-icon-star")
     expect(page).to have_css(".arcade-lb-row.is-you")
+
+    # The plays stat was rendered before the run, so it has to be refreshed or
+    # it reads zero next to a score that just landed.
+    expect(find(".arcade-stats")).to have_text("1")
 
     score = ArcadeScore.find_by(user_id: player.id, arcade_game_id: game.id)
     expect(score).to be_present
