@@ -148,6 +148,14 @@ RSpec.describe "Arcade games", type: :system do
     expect(expect_single_score).to be >= 0
   end
 
+  it "Hold the Line reports a score when the formation is left alone" do
+    open_game("holdtheline/index.html")
+
+    # Firing is automatic, so a motionless player still shoots. It ends either
+    # by taking three hits or by the formation reaching the line.
+    expect(expect_single_score).to be >= 0
+  end
+
   it "Penalty reports a score after three shots over the bar" do
     open_game("penalty/index.html")
 
