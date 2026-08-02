@@ -244,6 +244,29 @@ Roughly 15% of corner attempts miss the target altogether, which is the price of
 aiming there. `penalty_keeper_spec.rb` pins the two things that must stay true:
 he leaves the ground for a high shot, and a shot straight at him is saved.
 
+### Walk the boundary, do not patch holes
+
+This game has had two free goals, both the same shape. First the keeper could not
+leave the ground, so the top corners could not be defended. Then `targetVerdict`
+checked the crossbar and the posts and forgot the goal line, so the strip of
+ground between the line and the ball counted as a shot on target, and the
+keeper's box bottoms out on the line and can never come below it.
+
+Both were a boundary that nobody checked, and both were found by a player rather
+than a spec, because a spec asking "does the game report a score" is perfectly
+happy either way.
+
+`penalty_bounds_spec.rb` exists so there is no third one. It states the property
+rather than the symptom:
+
+- every point outside the mouth is a miss, above, below and to either side
+- every point inside it can be saved with the keeper lined up under it
+
+If a future change opens a gap anywhere on that boundary, one of those eleven
+examples goes red. Aim points keep a margin from the edges, since shots carry
+spread deliberately and a point sitting exactly on a line may legitimately land
+either side of it.
+
 ## Do not remove the gamepad icon registration
 
 `plugin.rb` registers `gamepad` and nothing in the plugin renders it, so it looks

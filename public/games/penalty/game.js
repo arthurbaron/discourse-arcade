@@ -141,9 +141,17 @@
     timer = RESULT_STEPS;
   }
 
+  // All four sides of the goal mouth, which took two goes to get right. The
+  // first version checked the crossbar and the posts and forgot the goal line,
+  // so the whole strip of ground between the line and the ball counted as a shot
+  // on target. The keeper's box bottoms out at the line and cannot go below it,
+  // so that strip was not a chance, it was a certainty.
   function targetVerdict(target) {
     if (target.y < GOAL_TOP) {
       return "OVER";
+    }
+    if (target.y > GOAL_BOTTOM) {
+      return "SHORT";
     }
     if (target.x < GOAL_LEFT || target.x > GOAL_RIGHT) {
       return "WIDE";
