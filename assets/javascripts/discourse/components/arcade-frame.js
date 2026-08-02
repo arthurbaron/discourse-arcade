@@ -84,6 +84,13 @@ export default class ArcadeFrame extends Component {
     // again" really restarts the game.
     params.set("run", String(this._runCount));
 
+    // Game files sit under /plugins/, which nginx serves as immutable for a
+    // year. The version is a content hash from the server; the game's HTML
+    // carries it onto its scripts, so a deploy reaches every cached device.
+    if (this.game.assets_version) {
+      params.set("v", this.game.assets_version);
+    }
+
     return `${this.game.play_url}?${params.toString()}`;
   }
 

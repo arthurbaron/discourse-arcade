@@ -28,7 +28,9 @@ class ArcadeGame < ActiveRecord::Base
 
   def thumbnail_url
     return nil if thumbnail.blank?
-    "#{Discourse.base_path.presence}/plugins/discourse-arcade/images/thumbs/#{thumbnail}"
+    # The stamp keeps a year-cached browser from pinning an old image; see
+    # ArcadeAssetsVersion.
+    "#{Discourse.base_path.presence}/plugins/discourse-arcade/images/thumbs/#{thumbnail}?v=#{ArcadeAssetsVersion.current}"
   end
 
   # Best score per user, ranked. One row per player, so a leaderboard never

@@ -35,6 +35,7 @@ after_initialize do
     "app/models/arcade_score",
     "app/services/arcade_score_submission",
     "app/services/arcade_record_holders",
+    "app/services/arcade_assets_version",
     "app/controllers/arcade_page_controller",
     "app/controllers/arcade_controller",
     "app/controllers/admin_arcade_controller",

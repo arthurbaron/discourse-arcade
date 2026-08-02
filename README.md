@@ -101,6 +101,33 @@ The host passes the forum's colour scheme in the query string (`bg`, `fg`,
 `accent`, `muted`, `low`) so a game can match the active theme. Validate those
 values before using them, as `twentyfortyeight/game.js` does.
 
+### Caching, and why every asset URL carries `?v=`
+
+Production nginx serves everything under `/plugins/` with a year of
+`Cache-Control: public, immutable`: cache it and never ask again. That is right
+for Discourse's own bundles, which get a digest in their filename on every
+build, but these game files keep the same URL forever. A browser that played
+one game once would hold that copy for a year, straight through every deploy.
+
+That is not hypothetical. Debris shipped together with a new function in
+`_shared/arcade.js`, and phones that had cached the helper earlier ran new game
+code against the old helper: an immediate crash, a grey stage, iOS only,
+because those phones had played the arcade before and desktops had not.
+
+So the server computes a short hash of the games tree (`ArcadeAssetsVersion`,
+exposed as `assets_version` in the game JSON), the frame appends it to the
+game URL as `v=`, and a small loader in each game's `index.html` carries it
+onto the stylesheet and scripts it loads. Changed files get a new URL, which
+makes the year of caching harmless; unchanged files keep their warm caches.
+The loader only accepts a plain hex stamp, since the value arrives in a URL
+and is written into the document.
+
+Two rules follow. A new game's `index.html` must load its assets through that
+same loader snippet (copy it from any game). And nothing under `public/` may
+ever be referenced by a bare URL from the app without a stamp: not scripts,
+not stylesheets, not thumbnails. `spec/system/asset_stamp_spec.rb` walks the
+whole chain in a real browser.
+
 ## How scores are trusted
 
 A browser game cannot be trusted to report an honest score, so the defences are

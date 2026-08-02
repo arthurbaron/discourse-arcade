@@ -4,7 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Debris</title>
-    <link rel="stylesheet" href="../_shared/arcade.css" />
+    <script>
+      // The host stamps ?v=<content hash> on our URL. Carrying it onto every
+      // asset gives a year-cached browser (nginx marks /plugins/ immutable) a
+      // fresh URL the moment a deploy changes anything. A stale cached copy of
+      // the shared helper is what broke Debris on iOS.
+      let assetV = new URLSearchParams(location.search).get("v") || "";
+      if (!/^[0-9a-f]{1,40}$/.test(assetV)) {
+        assetV = "";
+      }
+      function withV(path) {
+        return assetV ? path + "?v=" + assetV : path;
+      }
+      document.write(
+        '<link rel="stylesheet" href="' + withV("../_shared/arcade.css") + '" />'
+      );
+    </script>
   </head>
   <body>
     <div id="app">
@@ -22,7 +37,11 @@
       </div>
     </div>
 
-    <script src="../_shared/arcade.js"></script>
-    <script src="game.js"></script>
+    <script>
+      document.write(
+        '<script src="' + withV("../_shared/arcade.js") + '"><\/script>' +
+          '<script src="' + withV("game.js") + '"><\/script>'
+      );
+    </script>
   </body>
 </html>

@@ -57,6 +57,9 @@ class ArcadeController < ApplicationController
                name: game.name,
                tagline: game.tagline,
                play_url: game.play_url,
+               # The frame appends this to the game URL, and the game passes it
+               # on to its own scripts, so a deploy busts every layer of cache.
+               assets_version: ArcadeAssetsVersion.current,
                score_unit: game.score_unit,
                score_direction: game.score_direction,
                plays_count: game.plays_count,

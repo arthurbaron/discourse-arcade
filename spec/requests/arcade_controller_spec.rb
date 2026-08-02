@@ -66,6 +66,16 @@ RSpec.describe ArcadeController do
       get "/arcade/api/games.json"
       expect(response.parsed_body["games"].map { |g| g["slug"] }).not_to include(game.slug)
     end
+
+    it "stamps thumbnails, so a redrawn image reaches year-cached browsers" do
+      game.update!(thumbnail: "testgame.svg")
+      sign_in(player)
+
+      get "/arcade/api/games.json"
+
+      entry = response.parsed_body["games"].find { |g| g["slug"] == game.slug }
+      expect(entry["thumbnail_url"]).to end_with("?v=#{ArcadeAssetsVersion.current}")
+    end
   end
 
   describe "#start_run" do
@@ -223,6 +233,13 @@ RSpec.describe ArcadeController do
       body = response.parsed_body
       expect(body["leaderboard"].map { |r| r["score"] }).to eq([30, 90])
       expect(body["your_rank"]).to eq(2)
+    end
+
+    it "hands the frame the assets version it stamps onto the game URL" do
+      sign_in(player)
+      get "/arcade/api/games/#{game.slug}.json"
+
+      expect(response.parsed_body["game"]["assets_version"]).to eq(ArcadeAssetsVersion.current)
     end
   end
 

@@ -147,6 +147,16 @@
       </div>
     </div>
 
-    <script src="game.js"></script>
+    <script>
+      // Same cache-busting stamp as the games on the shared shell; the host
+      // hands it over in the URL, and it must reach game.js too.
+      let assetV = new URLSearchParams(location.search).get("v") || "";
+      if (!/^[0-9a-f]{1,40}$/.test(assetV)) {
+        assetV = "";
+      }
+      document.write(
+        '<script src="' + (assetV ? "game.js?v=" + assetV : "game.js") + '"><\/script>'
+      );
+    </script>
   </body>
 </html>
