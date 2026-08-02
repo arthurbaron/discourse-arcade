@@ -122,6 +122,9 @@ ARCADE_GAMES = [
   {
     slug: "debris",
     name: "Debris",
+    # Arrives switched off, so it appears in the admin list and gets turned on
+    # by hand rather than showing up on the arcade the moment it deploys.
+    enabled: false,
     tagline: "Break the rocks, and fight your own momentum.",
     entry_path: "debris/index.html",
     thumbnail: "debris.svg",
@@ -137,11 +140,16 @@ desc "Create or update the arcade game catalogue"
 task "arcade:seed" => :environment do
   ARCADE_GAMES.each do |attrs|
     game = ArcadeGame.find_or_initialize_by(slug: attrs[:slug])
-    game.assign_attributes(attrs.except(:slug))
-    game.enabled = true if game.new_record?
+
+    # enabled is deliberately excluded from the update. It is set once, when the
+    # game is created, and never touched again, so re-seeding after a rebuild
+    # cannot undo what an admin switched off. Everything else is refreshed.
+    game.assign_attributes(attrs.except(:slug, :enabled))
+    game.enabled = attrs.fetch(:enabled, true) if game.new_record?
     game.save!
 
-    puts "#{game.persisted? ? "ok" : "failed"}  #{game.slug}  #{game.name}"
+    state = game.enabled ? "on" : "off"
+    puts "#{game.persisted? ? "ok" : "failed"}  #{game.slug.ljust(12)} #{state}"
   end
 
   puts "\n#{ArcadeGame.listed.count} game(s) live."

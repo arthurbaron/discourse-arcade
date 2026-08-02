@@ -394,8 +394,14 @@ Three things worth keeping straight:
   the run token rather than through `listed`, so someone playing when the switch
   flips can finish and have their score stored. Starting a *new* run on a
   disabled game 404s. Both are pinned in `admin_arcade_controller_spec.rb`.
-- **`arcade:seed` will not switch anything back on.** It only sets `enabled` for
-  a game it is creating, so a rebuild leaves your choices alone.
+- **`arcade:seed` will not switch anything back on.** `enabled` is excluded from
+  the update entirely and set only when the row is created, so a rebuild refreshes
+  every other field and leaves your choices alone. A game can also ship switched
+  off by putting `enabled: false` in its catalogue entry, which is how Debris
+  arrives: it appears in this list rather than on the arcade, waiting to be turned
+  on by hand. `spec/lib/arcade_seed_spec.rb` pins all of that, since the seed runs
+  on every deploy and quietly undoing an admin's choice is the obvious way for it
+  to go wrong.
 
 Two traps cost time here, both invisible until you look:
 
