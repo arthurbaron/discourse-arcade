@@ -296,6 +296,62 @@ position never hits anything and would pass while the game was broken.
 A destroyed missile explodes in turn, so a well placed blast unzips a cluster.
 That chain is where the scores come from.
 
+## Recall was silent on iPhones
+
+Shipped broken and nothing here caught it. The audio context was created inside
+the opening tap, which is enough for Chrome, but Safari hands back a context in
+the `suspended` state and leaves it there. `resume()` was never called, so every
+iPhone got a silent game while every desktop worked.
+
+It now resumes on the opening tap and on every pad tap after it, because iOS
+suspends the context again whenever the page has been in the background.
+
+The mute button also tells the truth now. It said "sound on" while the player
+heard nothing, which is what turned a small bug into a confusing one. It follows
+the context's own `statechange` event rather than reading the state after asking
+for a resume: resume is asynchronous, and a first attempt at this reported "no
+sound" while the sound was already coming back.
+
+What it still cannot see is the iPhone's ring/silent switch, which mutes output
+without touching the context. "sound on" plus silence means the switch is on.
+
+That switch is worth a line on the start panel, and a deliberately unhelpful
+generic one would not do. Android has no equivalent: its silent mode and Do Not
+Disturb leave media volume alone, so Web Audio keeps playing there and a silent
+Android just means the volume is down, which nobody needs telling. The whole
+value is in the part that surprises people, which is that an iPhone mutes this
+while their music carries on.
+
+`recall_audio_spec.rb` drives the context into the state Safari leaves it in and
+checks the game climbs back out.
+
+## File names have to match what Ember asks for
+
+The arcade raised `discourse.deprecated-resolver-normalization` on every page
+load, which surfaces as a red admin notice on the forum. I first assumed it meant
+the whole classic frontend had to be ported. It did not.
+
+Ember asks the resolver for `route:arcade/index`, `controller:arcade/index` and
+`template:arcade/index`. The files were named `arcade-index.js` and
+`arcade-index.hbs`, which the resolver only finds through its last-resort "try it
+all dasherized" candidate, and finding something under any name other than the
+one requested is exactly what the deprecation reports. Nested routes therefore
+need nested directories:
+
+    routes/arcade/index.js        not  routes/arcade-index.js
+    controllers/arcade/index.js   not  controllers/arcade-index.js
+    templates/arcade/index.hbs    not  templates/arcade-index.hbs
+
+`templates/arcade.hbs` stays where it is, since route `arcade` asks for
+`template:arcade` and that already matches.
+
+`template_paths_spec.rb` reads the browser console and fails on any of these
+warnings, which is the only way to see them: the pages render perfectly either
+way. It earned its keep immediately. The first attempt renamed only the templates
+and the spec caught that routes and controllers had the same problem, so without
+it a half fix would have shipped and the notice would have stayed exactly where
+it was.
+
 ## Known limits
 
 - The frame is a fixed 1:1 aspect ratio. A game needing another shape needs an

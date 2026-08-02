@@ -75,6 +75,14 @@
         color: var(--muted);
       }
 
+      #begin small.quiet {
+        font-size: 0.66rem;
+        opacity: 0.75;
+        max-width: 22em;
+        line-height: 1.35;
+        margin-top: 0.3em;
+      }
+
       #round {
         font-variant-numeric: tabular-nums;
       }
@@ -115,6 +123,14 @@
         <div id="begin">
           Tap to begin
           <small>Watch the sequence, then repeat it</small>
+          <!-- Worth the line: an iPhone's silent switch mutes web audio while
+               leaving Spotify and the rest untouched, so a muted phone looks
+               exactly like a broken game. Android has no equivalent, its silent
+               mode spares media volume. -->
+          <small class="quiet">
+            Best with sound. On iPhone the silent switch mutes this, even when
+            your music is not.
+          </small>
         </div>
 
         <div id="over">Game over</div>

@@ -49,24 +49,60 @@
 
   // ── Sound ────────────────────────────────────────────────
 
-  function unlockAudio() {
-    if (audio) {
-      return;
+  // Says what is actually true rather than what was asked for. A button reading
+  // "sound on" while the player hears nothing is what turned a small bug into a
+  // confusing one. It cannot see the iPhone's ring/silent switch, which mutes
+  // output without touching the context, so "sound on" and silence together
+  // still means: check the switch.
+  function updateSoundLabel() {
+    if (muted) {
+      muteEl.textContent = "sound off";
+    } else if (!audio || audio.state !== "running") {
+      muteEl.textContent = "no sound";
+    } else {
+      muteEl.textContent = "sound on";
     }
+  }
+
+  // Called on every tap, not just the first. Safari hands back a context that is
+  // already suspended and leaves it there, so creating it inside a gesture is
+  // not enough on its own: it has to be resumed, and resumed again after the
+  // page has been backgrounded, which suspends it a second time. Without this
+  // the game is silent on iOS while working perfectly everywhere else.
+  function unlockAudio() {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) {
       return;
     }
-    try {
-      audio = new Ctx();
-    } catch {
-      // No sound available, which the game plays fine without.
-      audio = null;
+
+    if (!audio) {
+      try {
+        audio = new Ctx();
+      } catch {
+        // No sound available, which the game plays fine without.
+        audio = null;
+        return;
+      }
+
+      // Follow the context rather than guess at it. resume() is asynchronous, so
+      // reading state right after asking is a race: it reported "no sound" while
+      // the sound was in fact coming back. This fires whenever it really changes.
+      audio.addEventListener("statechange", updateSoundLabel);
+    }
+
+    if (audio.state !== "running" && audio.resume) {
+      audio.resume().catch(() => {
+        // Nothing to do about it; the game stays playable without sound.
+      });
     }
   }
 
   function tone(frequency, seconds, type) {
     if (!audio || muted) {
+      return;
+    }
+
+    if (audio.state !== "running") {
       return;
     }
 
@@ -219,6 +255,9 @@
   pads.forEach(function (pad, index) {
     pad.addEventListener("pointerdown", function (event) {
       event.preventDefault();
+      // Every tap is a chance to get the context out of suspended, which is
+      // where iOS puts it again after the page has been in the background.
+      unlockAudio();
       press(index);
     });
   });
@@ -227,7 +266,8 @@
     event.preventDefault();
     event.stopPropagation();
     muted = !muted;
-    muteEl.textContent = muted ? "sound off" : "sound on";
+    unlockAudio();
+    updateSoundLabel();
   });
 
   function begin() {
@@ -236,6 +276,7 @@
     }
     // The gesture that lets this document play audio at all.
     unlockAudio();
+    updateSoundLabel();
     beginEl.classList.add("gone");
     nextRound();
   }
@@ -255,6 +296,11 @@
         expected,
         score,
         phase,
+        muted,
+        // "none" when the browser has no Web Audio at all, otherwise whatever
+        // the context says. Anything but "running" means silence, and on iOS
+        // that is the difference between a bug and a phone on mute.
+        audio: audio ? audio.state : "none",
       };
     },
   };
