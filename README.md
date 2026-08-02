@@ -312,6 +312,33 @@ without touching the context. "sound on" plus silence means the switch is on.
 `recall_audio_spec.rb` drives the context into the state Safari leaves it in and
 checks the game climbs back out.
 
+## File names have to match what Ember asks for
+
+The arcade raised `discourse.deprecated-resolver-normalization` on every page
+load, which surfaces as a red admin notice on the forum. I first assumed it meant
+the whole classic frontend had to be ported. It did not.
+
+Ember asks the resolver for `route:arcade/index`, `controller:arcade/index` and
+`template:arcade/index`. The files were named `arcade-index.js` and
+`arcade-index.hbs`, which the resolver only finds through its last-resort "try it
+all dasherized" candidate, and finding something under any name other than the
+one requested is exactly what the deprecation reports. Nested routes therefore
+need nested directories:
+
+    routes/arcade/index.js        not  routes/arcade-index.js
+    controllers/arcade/index.js   not  controllers/arcade-index.js
+    templates/arcade/index.hbs    not  templates/arcade-index.hbs
+
+`templates/arcade.hbs` stays where it is, since route `arcade` asks for
+`template:arcade` and that already matches.
+
+`template_paths_spec.rb` reads the browser console and fails on any of these
+warnings, which is the only way to see them: the pages render perfectly either
+way. It earned its keep immediately. The first attempt renamed only the templates
+and the spec caught that routes and controllers had the same problem, so without
+it a half fix would have shipped and the notice would have stayed exactly where
+it was.
+
 ## Known limits
 
 - The frame is a fixed 1:1 aspect ratio. A game needing another shape needs an
