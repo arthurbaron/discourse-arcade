@@ -63,6 +63,11 @@
   let fireTimer = 0;
   let respawn = 0;
   const keys = A.keysHeld();
+  // A tap turns without thrusting, a hold does both. Counted in steps rather
+  // than milliseconds so it stays in lockstep with the fixed-step loop.
+  const HOLD_STEPS = 10;
+  let touching = false;
+  let touchSteps = 0;
 
   function size() {
     return Math.min(view.w, view.h);
@@ -148,7 +153,7 @@
 
   function updateHint() {
     hintEl.innerHTML =
-      "Hold to steer and thrust &middot; Lives " + Math.max(0, lives);
+      "Tap to turn, hold to thrust &middot; Lives " + Math.max(0, lives);
   }
 
   function addScore(points) {
@@ -189,7 +194,6 @@
     ship.vy = 0;
     ship.heading = -Math.PI / 2;
     ship.target = -Math.PI / 2;
-    ship.thrusting = false;
     shots = [];
     respawn = RESPAWN_STEPS;
   }
@@ -238,10 +242,14 @@
   }
 
   function isThrusting() {
-    return ship.thrusting || keys.has("up");
+    return (touching && touchSteps > HOLD_STEPS) || keys.has("up");
   }
 
   function advanceShip() {
+    if (touching) {
+      touchSteps++;
+    }
+
     // Turning on a held key is applied every step. Nudging the heading once per
     // keydown meant the operating system's repeat delay showed up as a stutter:
     // one turn, a pause, then a rush. Pointer aiming still eases towards the
@@ -470,17 +478,23 @@
 
   A.onAim(stage, {
     onStart: function (point) {
-      ship.thrusting = true;
+      // Aim straight away, so even the shortest tap turns the ship. Thrust waits
+      // to see whether the finger stays, which is what lets you line up a shot
+      // while coasting instead of always accelerating as you turn.
+      touching = true;
+      touchSteps = 0;
       aimAt(point);
     },
     onMove: function (from, to) {
       aimAt(to);
     },
     onRelease: function () {
-      ship.thrusting = false;
+      touching = false;
+      touchSteps = 0;
     },
     onCancel: function () {
-      ship.thrusting = false;
+      touching = false;
+      touchSteps = 0;
     },
   });
 

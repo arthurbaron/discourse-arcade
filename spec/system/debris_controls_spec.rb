@@ -84,4 +84,109 @@ RSpec.describe "Debris controls", type: :system do
     sleep 0.1
     expect(page.evaluate_script("window.Debris.state().thrusting")).to eq(false)
   end
+
+  # Touch is a different path from the keyboard: it eases towards wherever the
+  # finger is rather than rotating directly, so it needs its own check. Bounded so
+  # a mid-measurement death cannot pollute it, and sampled a little coarser than
+  # the frame rate: the simulation runs in fixed 16ms steps, so a per-frame sample
+  # can legitimately land between two of them and see no change.
+  it "eases smoothly towards a held finger" do
+    samples =
+      page.evaluate_script(<<~JS)
+        (function () {
+          const stage = document.getElementById("stage");
+          const r = stage.getBoundingClientRect();
+
+          function send(type, nx, ny) {
+            stage.dispatchEvent(new PointerEvent(type, {
+              clientX: r.left + r.width * nx,
+              clientY: r.top + r.height * ny,
+              pointerId: 1, pointerType: "touch", bubbles: true, cancelable: true
+            }));
+          }
+
+          // It starts pointing up, so a finger straight below is the furthest it
+          // can be asked to turn.
+          const startLives = window.Debris.state().lives;
+          send("pointerdown", 0.5, 0.95);
+          send("pointermove", 0.5, 0.95);
+
+          return new Promise(function (resolve) {
+            const out = [];
+            const timer = setInterval(function () {
+              const s = window.Debris.state();
+              // Stop before a respawn resets the heading and ruins the run.
+              if (s.lives !== startLives || out.length >= 16) {
+                clearInterval(timer);
+                resolve(out);
+                return;
+              }
+              out.push(s.ship.heading);
+            }, 40);
+          });
+        })();
+      JS
+
+    expect(samples.length).to be >= 10
+
+    deltas = samples.each_cons(2).map { |a, b| b - a }
+
+    # It swings the whole way round without ever turning back on itself, which is
+    # what a stall or a fight between the two input paths would look like.
+    expect(deltas.count(&:negative?)).to eq(0)
+    expect(deltas.count { |d| d.abs < 0.0001 }).to be <= (deltas.length * 0.25).ceil
+    expect((samples.last - samples.first).abs).to be > 1.5
+  end
+  # The touch rule that makes coasting possible: a tap only turns, a hold turns
+  # and thrusts. Without the split, every turn on a phone also accelerated, so you
+  # could never line up a shot while drifting.
+  def touch(x, y, hold_seconds: 0)
+    page.execute_script(<<~JS)
+      (function () {
+        const stage = document.getElementById("stage");
+        const r = stage.getBoundingClientRect();
+        window.__send = function (type) {
+          stage.dispatchEvent(new PointerEvent(type, {
+            clientX: r.left + r.width * #{x},
+            clientY: r.top + r.height * #{y},
+            pointerId: 1, pointerType: "touch", bubbles: true, cancelable: true
+          }));
+        };
+        window.__send("pointerdown");
+        window.__send("pointermove");
+      })();
+    JS
+
+    sleep hold_seconds if hold_seconds.positive?
+  end
+
+  def lift
+    page.execute_script('window.__send("pointerup");')
+  end
+
+  it "turns on a tap without thrusting" do
+    before_heading = page.evaluate_script("window.Debris.state().ship.heading")
+
+    touch(0.5, 0.95)
+    # Well under the hold threshold, so this is a tap.
+    sleep 0.06
+    thrusting_during_tap = page.evaluate_script("window.Debris.state().thrusting")
+    lift
+
+    sleep 0.4
+    after_heading = page.evaluate_script("window.Debris.state().ship.heading")
+
+    expect(thrusting_during_tap).to eq(false)
+    expect((after_heading - before_heading).abs).to be > 0.2
+  end
+
+  it "thrusts once the finger stays down" do
+    touch(0.5, 0.95, hold_seconds: 0.45)
+
+    expect(page.evaluate_script("window.Debris.state().thrusting")).to eq(true)
+
+    lift
+    sleep 0.1
+    expect(page.evaluate_script("window.Debris.state().thrusting")).to eq(false)
+  end
 end

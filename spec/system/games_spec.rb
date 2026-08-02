@@ -225,6 +225,11 @@ RSpec.describe "Arcade games", type: :system do
           }));
         }
 
+        // Press once and then only re-aim. Re-pressing would restart the
+        // hold timer every time, and a tap turns without thrusting, so the ship
+        // would steer beautifully and never actually go anywhere.
+        let pressed = false;
+
         setInterval(function () {
           const s = window.Debris.state();
           if (!s.rocks.length) { return; }
@@ -236,7 +241,10 @@ RSpec.describe "Arcade games", type: :system do
             if (d < bestD) { bestD = d; best = rock; }
           });
 
-          send("pointerdown", best.x, best.y);
+          if (!pressed) {
+            pressed = true;
+            send("pointerdown", best.x, best.y);
+          }
           send("pointermove", best.x, best.y);
         }, 120);
       })();

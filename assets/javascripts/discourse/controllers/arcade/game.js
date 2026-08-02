@@ -1,10 +1,13 @@
 import { tracked } from "@glimmer/tracking";
 import Controller from "@ember/controller";
 import { action } from "@ember/object";
-// The older local checkout runs ember-source 3.28, which has no named `service`
-// export. Switch this over when that checkout is retired.
-// eslint-disable-next-line discourse/service-inject-import
-import { inject as service } from "@ember/service";
+// The 3.2-era checkout at ~/discourse runs ember-source 3.28, whose
+// @ember/service exports only `inject`, so this file cannot load there. That is
+// deliberate: current Discourse raises the old `inject as service` import as an
+// error in its test environment, and it surfaced as a suite that went red or
+// green depending on the random spec order. Production runs current Discourse,
+// and ~/discourse-next is the reference now.
+import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 
