@@ -171,6 +171,41 @@
     });
   }
 
+  // Which direction keys are down right now, for anything that turns or thrusts
+  // while a key is held. onKeys only reports keydown, so holding a key leans on
+  // the operating system's key repeat: one event, then roughly half a second of
+  // nothing, then a burst. That reads as stiff and is not fixable by tuning.
+  function keysHeld() {
+    const held = new Set();
+
+    window.addEventListener("keydown", function (event) {
+      const dir = KEYMAP[event.key];
+      if (!dir) {
+        return;
+      }
+      event.preventDefault();
+      held.add(dir);
+    });
+
+    window.addEventListener("keyup", function (event) {
+      const dir = KEYMAP[event.key];
+      if (dir) {
+        held.delete(dir);
+      }
+    });
+
+    // Losing focus mid-press would otherwise leave a key stuck down for good.
+    window.addEventListener("blur", function () {
+      held.clear();
+    });
+
+    return {
+      has(dir) {
+        return held.has(dir);
+      },
+    };
+  }
+
   function ratioAcross(el, clientX) {
     let rect = el.getBoundingClientRect();
     if (rect.width <= 0) {
@@ -291,6 +326,7 @@
     canvas,
     onSwipe,
     onKeys,
+    keysHeld,
     onDrag,
     onAim,
     onTap,

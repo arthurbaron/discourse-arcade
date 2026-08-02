@@ -22,7 +22,6 @@
   let DRAG = 0.9945;
   let MAX_SPEED = 0.0145;
   let TURN_RATE = 0.075;
-  let KEY_THRUST_STEPS = 8;
 
   let SHOT_SPEED = 0.019;
   let SHOT_LIFE = 52;
@@ -63,7 +62,7 @@
   let alive = true;
   let fireTimer = 0;
   let respawn = 0;
-  let keyThrust = 0;
+  const keys = A.keysHeld();
 
   function size() {
     return Math.min(view.w, view.h);
@@ -238,14 +237,31 @@
     }
   }
 
-  function advanceShip() {
-    ship.heading = turnTowards(ship.heading, ship.target);
+  function isThrusting() {
+    return ship.thrusting || keys.has("up");
+  }
 
-    if (keyThrust > 0) {
-      keyThrust--;
+  function advanceShip() {
+    // Turning on a held key is applied every step. Nudging the heading once per
+    // keydown meant the operating system's repeat delay showed up as a stutter:
+    // one turn, a pause, then a rush. Pointer aiming still eases towards the
+    // finger, which is what keeps the ship feeling like it has weight.
+    let turning = 0;
+    if (keys.has("left")) {
+      turning -= 1;
+    }
+    if (keys.has("right")) {
+      turning += 1;
     }
 
-    if (ship.thrusting || keyThrust > 0) {
+    if (turning !== 0) {
+      ship.heading += turning * TURN_RATE;
+      ship.target = ship.heading;
+    } else {
+      ship.heading = turnTowards(ship.heading, ship.target);
+    }
+
+    if (isThrusting()) {
       ship.vx += Math.cos(ship.heading) * THRUST;
       ship.vy += Math.sin(ship.heading) * THRUST;
     }
@@ -392,7 +408,7 @@
     ctx.closePath();
     ctx.stroke();
 
-    if (!ship.thrusting && keyThrust <= 0) {
+    if (!isThrusting()) {
       return;
     }
 
@@ -468,16 +484,6 @@
     },
   });
 
-  A.onKeys(function (dir) {
-    if (dir === "left") {
-      ship.target = ship.heading - TURN_RATE * 3;
-    } else if (dir === "right") {
-      ship.target = ship.heading + TURN_RATE * 3;
-    } else if (dir === "up") {
-      keyThrust = KEY_THRUST_STEPS;
-    }
-  });
-
   // Read-only, for the specs, same convention as the other games. A stationary
   // ship auto-fires and shoots away the very rocks that would hit it, so a spec
   // cannot rely on drifting into one; it needs to steer at a real target. This
@@ -485,7 +491,8 @@
   window.Debris = {
     state() {
       return {
-        ship: { x: ship.x, y: ship.y },
+        ship: { x: ship.x, y: ship.y, heading: ship.heading },
+        thrusting: isThrusting(),
         rocks: rocks.map(function (rock) {
           return { x: rock.x, y: rock.y, r: rock.r };
         }),
