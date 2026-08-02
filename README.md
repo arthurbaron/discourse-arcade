@@ -309,6 +309,13 @@ sound" while the sound was already coming back.
 What it still cannot see is the iPhone's ring/silent switch, which mutes output
 without touching the context. "sound on" plus silence means the switch is on.
 
+That switch is worth a line on the start panel, and a deliberately unhelpful
+generic one would not do. Android has no equivalent: its silent mode and Do Not
+Disturb leave media volume alone, so Web Audio keeps playing there and a silent
+Android just means the volume is down, which nobody needs telling. The whole
+value is in the part that surprises people, which is that an iPhone mutes this
+while their music carries on.
+
 `recall_audio_spec.rb` drives the context into the state Safari leaves it in and
 checks the game climbs back out.
 
