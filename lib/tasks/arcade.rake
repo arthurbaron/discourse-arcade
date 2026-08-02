@@ -119,6 +119,18 @@ ARCADE_GAMES = [
     min_run_seconds: 2,
     position: 9,
   },
+  {
+    slug: "debris",
+    name: "Debris",
+    tagline: "Break the rocks, and fight your own momentum.",
+    entry_path: "debris/index.html",
+    thumbnail: "debris.svg",
+    score_direction: "high",
+    score_unit: "points",
+    max_plausible_score: 500_000,
+    min_run_seconds: 2,
+    position: 10,
+  },
 ].freeze
 
 desc "Create or update the arcade game catalogue"

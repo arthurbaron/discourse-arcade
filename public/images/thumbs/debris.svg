@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" role="img" aria-label="Debris">
+  <g opacity="0.14" fill="#808080">
+    <rect x="88" y="18" width="144" height="144" rx="6" />
+  </g>
+
+  <g fill="none" stroke="#808080" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M108 44 L124 36 L140 42 L145 58 L134 70 L116 68 L104 57 Z" />
+    <path d="M186 106 L200 100 L212 108 L214 122 L202 131 L188 127 L182 115 Z" />
+    <path d="M196 48 L205 44 L213 50 L211 60 L201 62 L194 55 Z" />
+    <path d="M112 122 L120 118 L127 124 L124 133 L115 134 L110 128 Z" />
+  </g>
+
+  <g fill="#808080">
+    <circle cx="160" cy="78" r="3" />
+    <circle cx="160" cy="62" r="2.5" />
+  </g>
+
+  <path d="M160 108 L150 128 L170 128 Z" fill="none" stroke="#4a7fb5" stroke-width="3" stroke-linejoin="round" />
+  <path d="M160 130 L160 140" stroke="#4a7fb5" stroke-width="2.5" />
+</svg>

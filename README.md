@@ -29,8 +29,9 @@ bin/rake arcade:seed
 | `holdtheline` | points | slide to move, arrows; fire is automatic |
 | `recall` | rounds | tap the pads |
 | `intercept` | points | tap to place a blast |
+| `debris` | points | hold to steer and thrust, arrows; fire is automatic |
 
-All nine are built for a square frame.
+All ten are built for a square frame.
 
 ## Adding a game
 
@@ -58,15 +59,20 @@ game.
 
 ### Test hooks
 
-Some games expose a small read-only object so a spec can check the thing that
-"it ends and reports a score" cannot: `window.Game2048.collapse` for the merge
-rules, `window.Keepie.state()` to tap the ball accurately,
-`window.Dribble.buildRow` to prove every row leaves a passable gap, and
-`window.Penalty.state()` for the keeper's position and the outcome of a shot,
-which is drawn on the canvas and so invisible to a spec otherwise, and
-`window.Recall.state()` for the sequence, since a spec cannot watch pads flash,
-and `window.Intercept.state()` for the incoming tracks, so a spec can lead a
-shot the way a player has to.
+Most games expose a small read-only object so a spec can check the thing that
+"it ends and reports a score" cannot:
+
+- `window.Game2048.collapse` for the merge rules.
+- `window.Keepie.state()` to tap the ball accurately.
+- `window.Dribble.buildRow` to prove every row leaves a passable gap.
+- `window.Penalty.state()` for the keeper's position and the outcome of a shot,
+  which is drawn on the canvas and so invisible to a spec otherwise.
+- `window.Recall.state()` for the sequence, since a spec cannot watch pads flash.
+- `window.Intercept.state()` for the incoming tracks, so a spec can lead a shot
+  the way a player has to.
+- `window.Debris.state()` to steer at a real rock. A stationary ship auto-fires
+  and destroys the rocks that would have hit it, so a spec that waits to be hit
+  can wait forever, and one did.
 
 These read state or generate a row; none of them set a score. A player already
 has the whole game in front of them in view-source, and scores are validated

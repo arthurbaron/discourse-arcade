@@ -206,6 +206,53 @@ RSpec.describe "Arcade games", type: :system do
     expect(expect_single_score).to be >= 0
   end
 
+  it "Debris reports a score when the ship is flown into the rocks" do
+    open_game("debris/index.html")
+
+    # A stationary ship auto-fires and clears the rocks that would have hit it,
+    # so waiting for a collision can take forever. Steer at the nearest rock
+    # instead, which also exercises the real steering and collision code.
+    page.execute_script(<<~JS)
+      (function () {
+        const stage = document.getElementById("stage");
+        const r = stage.getBoundingClientRect();
+
+        function send(type, x, y) {
+          stage.dispatchEvent(new PointerEvent(type, {
+            clientX: r.left + r.width * x,
+            clientY: r.top + r.height * y,
+            pointerId: 1, pointerType: "touch", bubbles: true, cancelable: true
+          }));
+        }
+
+        // Press once and then only re-aim. Re-pressing would restart the
+        // hold timer every time, and a tap turns without thrusting, so the ship
+        // would steer beautifully and never actually go anywhere.
+        let pressed = false;
+
+        setInterval(function () {
+          const s = window.Debris.state();
+          if (!s.rocks.length) { return; }
+
+          let best = s.rocks[0];
+          let bestD = Infinity;
+          s.rocks.forEach(function (rock) {
+            const d = Math.hypot(rock.x - s.ship.x, rock.y - s.ship.y);
+            if (d < bestD) { bestD = d; best = rock; }
+          });
+
+          if (!pressed) {
+            pressed = true;
+            send("pointerdown", best.x, best.y);
+          }
+          send("pointermove", best.x, best.y);
+        }, 120);
+      })();
+    JS
+
+    expect(expect_single_score).to be >= 0
+  end
+
   it "Penalty reports a score after three shots over the bar" do
     open_game("penalty/index.html")
 
