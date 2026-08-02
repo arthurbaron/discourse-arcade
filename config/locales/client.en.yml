@@ -1,0 +1,11 @@
+en:
+  js:
+    arcade:
+      admin:
+        title: "Arcade"
+        games:
+          title: "Games"
+          nav_description: "Switch individual games on and off"
+          scores:
+            one: "%{count} score"
+            other: "%{count} scores"

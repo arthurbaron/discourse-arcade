@@ -9,6 +9,8 @@
 enabled_site_setting :arcade_enabled
 
 register_asset "stylesheets/arcade.css"
+# Admin pages load their own bundle, so admin styling has to say so.
+register_asset "stylesheets/admin/arcade-admin.css", :admin
 
 # A star marks a personal best, and the trophy is the record flair next to a
 # poster's name.
@@ -22,6 +24,10 @@ register_svg_icon "trophy"
 # fill the sprite, so registering it here is what keeps it selectable at all.
 register_svg_icon "gamepad"
 
+# Admin gets its own page under Plugins, with a tab for switching individual
+# games on and off.
+add_admin_route "arcade.admin.title", "discourse-arcade", use_new_show_route: true
+
 after_initialize do
   [
     "app/models/arcade_game",
@@ -31,6 +37,7 @@ after_initialize do
     "app/services/arcade_record_holders",
     "app/controllers/arcade_page_controller",
     "app/controllers/arcade_controller",
+    "app/controllers/admin_arcade_controller",
   ].each { |f| require_relative f }
 
   # Records held, for the badge next to a poster's name.
@@ -61,5 +68,16 @@ after_initialize do
     post "/arcade/api/games/:slug/runs" => "arcade#start_run"
     post "/arcade/api/runs/:token" => "arcade#submit_score"
     delete "/arcade/api/scores/:id" => "arcade#destroy_score"
+
+    # Admin JSON lives with the rest of the plugin's API rather than under
+    # /admin/plugins, so it can never shadow Discourse's own plugin routes.
+    # AdminController already demands an admin, so no extra constraint.
+    get "/arcade/api/admin/games" => "admin_arcade#index"
+    put "/arcade/api/admin/games/:id" => "admin_arcade#update"
+
+    # And the page itself. Rails only serves /admin/plugins/:plugin_id and
+    # /settings, so a child route of the admin SPA works when clicked but 404s on
+    # a hard load or a pasted URL until it is named here.
+    get "/admin/plugins/discourse-arcade/games" => "admin/plugins#show"
   end
 end
