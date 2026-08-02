@@ -346,6 +346,44 @@ position never hits anything and would pass while the game was broken.
 A destroyed missile explodes in turn, so a well placed blast unzips a cluster.
 That chain is where the scores come from.
 
+## Dying in Debris used to cost two lives
+
+Reported from play: you die, you blink for a bit, but somewhere in there the ship
+vanishes completely for a few seconds while still answering the controls, and
+then you are suddenly somewhere else with another life gone.
+
+All of it traced back to one counter doing two jobs. `respawn` counted 70 steps
+down to 1 and then held at 1 until the middle of the field was clear, and the
+blink test read `floor(respawn / 6) % 2 === 0`, which at 1 is true: the wait was
+spent completely invisible rather than blinking. `advanceShip()` ran the whole
+time, so a finger still on the glass flew a ship nobody could see, while the
+clear-the-middle check watched the middle the ship had long since left. When the
+counter finally reached zero you turned solid wherever you had drifted to.
+
+Measured on the old code, holding the finger through a death: 2.48 field-widths
+of travel in three seconds, thrusting in 120 of 120 samples, second life gone
+inside the window.
+
+It is now two separate things. `returning` is a fixed beat with the ship off the
+field: not drawn, not moving, deaf to input. `shield` is the grace period after
+it, on the field and playable, and only that phase blinks, so no state can leave
+the ship hidden. The spot is chosen when you die and marked with a faint outline
+for the whole wait, so you watch where you are about to be.
+
+The wait is deliberately fixed rather than "until the middle is clear". That
+condition was not just badly wired, it was the wrong idea here: the ship does not
+shoot while it is away, so nothing clears the middle, and a traced run sat there
+for two full seconds without returning. The original arcade waited because it had
+no invulnerability to fall back on. We do, so the shield carries the fairness and
+`chooseReturnSpot` picks the middle when there is room and a spot on a small ring
+around it when there is not.
+
+`debris_respawn_spec.rb` pins the invariants that matter: the ship does not move
+while it is away, it always returns and quickly, it lands where the marker
+promised with room around it, and no life is lost while away or shielded. The
+last example reads canvas pixels rather than game state, so a marker that was
+calculated but never painted still fails.
+
 ## Recall was silent on iPhones
 
 Shipped broken and nothing here caught it. The audio context was created inside

@@ -35,7 +35,18 @@
     1: { r: 0.026, points: 100 },
   };
 
-  let RESPAWN_STEPS = 70;
+  // Dying has two stages, and running them off one counter cost you the next
+  // life as well. First the ship is away for a fixed beat: not drawn, not
+  // moving, and deaf to your finger. Then it is back and briefly cannot be hit,
+  // and that is the part that blinks.
+  //
+  // The wait is deliberately a fixed length rather than "until the middle is
+  // clear". The original arcade waited because it had no shield to fall back
+  // on; waiting here left players staring at a frozen field for seconds at a
+  // time, because the ship does not shoot while it is away, so nothing clears
+  // the middle. The shield is what keeps the return fair.
+  let RETURN_STEPS = 42;
+  let SHIELD_STEPS = 72;
   let SAFE_RADIUS = 0.17;
 
   let stage = document.getElementById("stage");
@@ -61,7 +72,10 @@
   let wave = 0;
   let alive = true;
   let fireTimer = 0;
-  let respawn = 0;
+  let returning = 0;
+  let shield = 0;
+  // Picked the moment you die, so the marker can show you where you will be.
+  let returnSpot = { x: 0.5, y: 0.5 };
   const keys = A.keysHeld();
   // A tap turns without thrusting, a hold does both. Counted in steps rather
   // than milliseconds so it stays in lockstep with the fixed-step loop.
@@ -168,15 +182,47 @@
     A.submit(score);
   }
 
-  function centreIsClear() {
+  // Room around a point, measured to the nearest rock's edge.
+  function clearanceAt(x, y) {
+    let nearest = 9;
+
     for (let i = 0; i < rocks.length; i++) {
       let rock = rocks[i];
-      let d = Math.hypot(delta(rock.x, 0.5), delta(rock.y, 0.5));
-      if (d < SAFE_RADIUS + rock.r) {
-        return false;
+      let d = Math.hypot(delta(rock.x, x), delta(rock.y, y)) - rock.r;
+      if (d < nearest) {
+        nearest = d;
       }
     }
-    return true;
+
+    return nearest;
+  }
+
+  // The middle, which keeps a return predictable, unless the middle is occupied.
+  function chooseReturnSpot() {
+    let best = { x: 0.5, y: 0.5 };
+    let bestClearance = clearanceAt(0.5, 0.5);
+
+    if (bestClearance >= SAFE_RADIUS) {
+      return best;
+    }
+
+    // A ring around the middle: close enough to still feel like the middle,
+    // wide enough to find a gap when the middle is busy.
+    for (let i = 0; i < 8; i++) {
+      let angle = (i / 8) * TAU;
+      let spot = {
+        x: wrap(0.5 + Math.cos(angle) * 0.24),
+        y: wrap(0.5 + Math.sin(angle) * 0.24),
+      };
+      let clearance = clearanceAt(spot.x, spot.y);
+
+      if (clearance > bestClearance) {
+        bestClearance = clearance;
+        best = spot;
+      }
+    }
+
+    return best;
   }
 
   function loseLife() {
@@ -188,14 +234,27 @@
       return;
     }
 
-    ship.x = 0.5;
-    ship.y = 0.5;
+    // The ship leaves the field here and is put back in the middle in comeBack,
+    // not now. Placing it early is what let a finger still on the glass fly a
+    // ship nobody could see, and become solid again wherever it ended up.
+    shots = [];
+    returning = RETURN_STEPS;
+    shield = 0;
+    returnSpot = chooseReturnSpot();
+  }
+
+  function comeBack() {
+    ship.x = returnSpot.x;
+    ship.y = returnSpot.y;
     ship.vx = 0;
     ship.vy = 0;
     ship.heading = -Math.PI / 2;
     ship.target = -Math.PI / 2;
-    shots = [];
-    respawn = RESPAWN_STEPS;
+    returning = 0;
+    shield = SHIELD_STEPS;
+    // A finger that was already down does not count as a hold that built up
+    // while the ship was away, so you do not launch the instant you are back.
+    touchSteps = 0;
   }
 
   function turnTowards(current, target) {
@@ -323,7 +382,7 @@
   }
 
   function checkShipHit() {
-    if (respawn > 0) {
+    if (shield > 0) {
       return;
     }
 
@@ -343,22 +402,30 @@
       return;
     }
 
-    if (respawn > 0) {
-      // Classic behaviour: you do not come back until the middle is safe.
-      if (respawn > 1 || centreIsClear()) {
-        respawn--;
+    // Away from the field. Rocks carry on, the ship does not exist yet, so
+    // nothing in here can move it or cost a life.
+    if (returning > 0) {
+      advanceRocks();
+      returning--;
+
+      if (returning === 0) {
+        comeBack();
       }
+
+      return;
+    }
+
+    if (shield > 0) {
+      shield--;
     }
 
     advanceShip();
     advanceRocks();
 
-    if (respawn === 0) {
-      fireTimer++;
-      if (fireTimer >= FIRE_EVERY) {
-        fireTimer = 0;
-        fire();
-      }
+    fireTimer++;
+    if (fireTimer >= FIRE_EVERY) {
+      fireTimer = 0;
+      fire();
     }
 
     advanceShots();
@@ -390,31 +457,44 @@
     ctx.stroke();
   }
 
-  function drawShip(ctx, s) {
-    let hidden = respawn > 0 && Math.floor(respawn / 6) % 2 === 0;
-    if (hidden) {
-      return;
-    }
-
-    let nose = ship.heading;
-    let left = ship.heading + 2.5;
-    let right = ship.heading - 2.5;
+  function shipOutline(ctx, s, x, y, heading) {
+    let left = heading + 2.5;
+    let right = heading - 2.5;
 
     ctx.beginPath();
     ctx.moveTo(
-      (ship.x + Math.cos(nose) * SHIP_R * 1.25) * s,
-      (ship.y + Math.sin(nose) * SHIP_R * 1.25) * s
+      (x + Math.cos(heading) * SHIP_R * 1.25) * s,
+      (y + Math.sin(heading) * SHIP_R * 1.25) * s
     );
     ctx.lineTo(
-      (ship.x + Math.cos(left) * SHIP_R) * s,
-      (ship.y + Math.sin(left) * SHIP_R) * s
+      (x + Math.cos(left) * SHIP_R) * s,
+      (y + Math.sin(left) * SHIP_R) * s
     );
     ctx.lineTo(
-      (ship.x + Math.cos(right) * SHIP_R) * s,
-      (ship.y + Math.sin(right) * SHIP_R) * s
+      (x + Math.cos(right) * SHIP_R) * s,
+      (y + Math.sin(right) * SHIP_R) * s
     );
     ctx.closePath();
     ctx.stroke();
+  }
+
+  // A faint outline on the spot the ship will come back to, so the pause reads
+  // as the game holding rather than the ship vanishing, and you have the whole
+  // wait to see where you are about to be.
+  function drawWaitingMarker(ctx, s) {
+    ctx.globalAlpha = 0.3;
+    shipOutline(ctx, s, returnSpot.x, returnSpot.y, -Math.PI / 2);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawShip(ctx, s) {
+    // Blinking means you cannot be hit yet. It only runs while the shield counts
+    // down, and that always counts down, so the ship can never be left hidden.
+    if (shield > 0 && Math.floor(shield / 6) % 2 === 0) {
+      return;
+    }
+
+    shipOutline(ctx, s, ship.x, ship.y, ship.heading);
 
     if (!isThrusting()) {
       return;
@@ -461,7 +541,11 @@
 
     // The ship gets the accent so you can always pick yourself out.
     ctx.strokeStyle = A.theme.accent;
-    drawShip(ctx, s);
+    if (returning > 0) {
+      drawWaitingMarker(ctx, s);
+    } else {
+      drawShip(ctx, s);
+    }
   }
 
   function aimAt(point) {
@@ -511,6 +595,10 @@
           return { x: rock.x, y: rock.y, r: rock.r };
         }),
         lives,
+        // Split so a spec can tell "away and frozen" from "back and protected".
+        onField: returning === 0,
+        shielded: shield > 0,
+        returnSpot: { x: returnSpot.x, y: returnSpot.y },
       };
     },
   };
