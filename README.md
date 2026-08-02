@@ -290,6 +290,28 @@ position never hits anything and would pass while the game was broken.
 A destroyed missile explodes in turn, so a well placed blast unzips a cluster.
 That chain is where the scores come from.
 
+## Recall was silent on iPhones
+
+Shipped broken and nothing here caught it. The audio context was created inside
+the opening tap, which is enough for Chrome, but Safari hands back a context in
+the `suspended` state and leaves it there. `resume()` was never called, so every
+iPhone got a silent game while every desktop worked.
+
+It now resumes on the opening tap and on every pad tap after it, because iOS
+suspends the context again whenever the page has been in the background.
+
+The mute button also tells the truth now. It said "sound on" while the player
+heard nothing, which is what turned a small bug into a confusing one. It follows
+the context's own `statechange` event rather than reading the state after asking
+for a resume: resume is asynchronous, and a first attempt at this reported "no
+sound" while the sound was already coming back.
+
+What it still cannot see is the iPhone's ring/silent switch, which mutes output
+without touching the context. "sound on" plus silence means the switch is on.
+
+`recall_audio_spec.rb` drives the context into the state Safari leaves it in and
+checks the game climbs back out.
+
 ## Known limits
 
 - The frame is a fixed 1:1 aspect ratio. A game needing another shape needs an
