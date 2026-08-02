@@ -346,6 +346,40 @@ and the spec caught that routes and controllers had the same problem, so without
 it a half fix would have shipped and the notice would have stayed exactly where
 it was.
 
+## Switching games on and off from admin
+
+Admin, Plugins, Arcade, then the Games tab: a row per game with its thumbnail,
+name, tagline and score count, and a switch.
+
+Almost none of this needed new machinery. `arcade_games.enabled` and the `listed`
+scope were already there, `ArcadeRecordHolders` already built from `listed`, and
+the model already cleared the flair cache on `after_commit`. So switching a game
+off takes it off `/arcade` and removes its record holder's trophy from every post
+without a line of new logic. No migration.
+
+Three things worth keeping straight:
+
+- **Disabling keeps every score.** Switch a game back on and its leaderboard is
+  exactly as it was.
+- **A run already in progress still counts.** Submission finds the game through
+  the run token rather than through `listed`, so someone playing when the switch
+  flips can finish and have their score stored. Starting a *new* run on a
+  disabled game 404s. Both are pinned in `admin_arcade_controller_spec.rb`.
+- **`arcade:seed` will not switch anything back on.** It only sets `enabled` for
+  a game it is creating, so a rebuild leaves your choices alone.
+
+Two traps cost time here, both invisible until you look:
+
+The admin JSON lives at `/arcade/api/admin/games` with the rest of the plugin's
+API, not under `/admin/plugins/`, so it cannot shadow Discourse's own plugin
+routes. And the *page* needs its own Rails route: Discourse only serves
+`/admin/plugins/:plugin_id` and `/settings`, so a child route of the admin SPA
+works when clicked but 404s on a hard load or a pasted URL until it is named.
+
+Admin styling is a separate file registered with the `:admin` target. Plugin
+stylesheets registered the ordinary way are not loaded on admin pages, and the
+symptom is a page that renders as a bulleted list with everything stacked.
+
 ## Known limits
 
 - The frame is a fixed 1:1 aspect ratio. A game needing another shape needs an

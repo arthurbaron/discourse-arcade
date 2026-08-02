@@ -1,0 +1,88 @@
+/* discourse-arcade, admin only.
+   Registered with the :admin target rather than living in arcade.css, because
+   plugin stylesheets registered the ordinary way are not loaded on admin pages:
+   admin has its own bundle. Without this the page rendered as a bulleted list
+   with everything stacked.
+
+   Namespaced rather than scoped under a wrapper, since this is the only place
+   these classes appear. */
+
+/* Namespaced rather than scoped under .arcade, because this renders in the admin
+   area and not on the arcade pages. */
+.arcade-admin-games__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-admin-games__row {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  padding: 0.75em 0.5em;
+  border-bottom: 1px solid var(--primary-low);
+}
+
+.arcade-admin-games__row:last-child {
+  border-bottom: 0;
+}
+
+/* A game that is off should read as off at a glance, without hiding it. */
+.arcade-admin-games__row--off .arcade-admin-games__art,
+.arcade-admin-games__row--off .arcade-admin-games__text {
+  opacity: 0.5;
+}
+
+.arcade-admin-games__art {
+  flex: 0 0 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 41px;
+  background: var(--primary-very-low);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.arcade-admin-games__art img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.arcade-admin-games__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.arcade-admin-games__name {
+  margin: 0;
+  font-size: 1em;
+}
+
+.arcade-admin-games__tagline {
+  margin: 0.15em 0 0;
+  font-size: 0.85em;
+  color: var(--primary-medium);
+}
+
+.arcade-admin-games__meta {
+  margin: 0.15em 0 0;
+  font-size: 0.75em;
+  color: var(--primary-medium);
+}
+
+.arcade-admin-games__switch {
+  flex: none;
+}
+
+@media (max-width: 767px) {
+  .arcade-admin-games__row {
+    gap: 0.75em;
+  }
+
+  .arcade-admin-games__art {
+    flex-basis: 56px;
+    height: 32px;
+  }
+}
