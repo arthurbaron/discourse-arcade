@@ -139,6 +139,56 @@ RSpec.describe "Darts", type: :system do
       expect(result["dartsThrown"]).to eq(1)
     end
 
+    # Found by reading the drawing code, then proved by counting pixels: the
+    # second aim phase opened one path, added the horizontal line, and called
+    # beginPath again for the landing dot, which discarded the line. The whole
+    # vertical aim was played with a dot and no line. Measured on a 1120 pixel
+    # row: 106 accent pixels broken, 1120 fixed. Nothing about "it reports a
+    # score" could ever have caught this.
+    it "draws the horizontal line across the board while aiming vertically" do
+      result = page.evaluate_script(<<~JS)
+        (function () {
+          document.getElementById("stage").dispatchEvent(new PointerEvent("pointerdown", {
+            clientX: 10, clientY: 10, pointerId: 1, pointerType: "touch",
+            bubbles: true, cancelable: true
+          }));
+
+          return new Promise(function (resolve) {
+            var tries = 0;
+            function sample() {
+              tries++;
+              var s = window.Darts.state();
+              var canvas = document.getElementById("view");
+              var ctx = canvas.getContext("2d");
+              var size = Math.min(canvas.width, canvas.height);
+
+              // Sampling has to happen inside a frame that has actually been
+              // drawn with the new phase; reading straight after the tap reads
+              // the previous frame, which is how a first attempt at this
+              // measurement fooled itself into passing.
+              if (s.phase === "aimY" && s.sweep > -0.2 && s.sweep < 0.2) {
+                var y = Math.round((0.53 + s.sweep * 0.38) * size);
+                var row = ctx.getImageData(0, y, canvas.width, 1).data;
+                var accent = 0;
+                for (var i = 0; i < row.length; i += 4) {
+                  if (row[i + 2] > row[i] + 40) { accent++; }
+                }
+                resolve({ accent: accent, width: canvas.width });
+                return;
+              }
+              if (tries > 400) { resolve({ gaveUp: true }); return; }
+              requestAnimationFrame(sample);
+            }
+            requestAnimationFrame(sample);
+          });
+        })();
+      JS
+
+      expect(result["gaveUp"]).to be_falsey
+      # A full-width line, not just the landing dot and the board's own rings.
+      expect(result["accent"]).to eq(result["width"])
+    end
+
     it "ignores taps during the result pause, so a double tap cannot burn a dart" do
       tap
       sleep 0.12
@@ -158,6 +208,52 @@ RSpec.describe "Darts", type: :system do
       expect(page.evaluate_script("window.Darts.rules.bonusFor([60, 60, 57])")).to eq(0)
       expect(page.evaluate_script("window.Darts.rules.bonusFor([60, 60])")).to eq(0)
       expect(page.evaluate_script("window.Darts.rules.bonusFor([20, 60, 60])")).to eq(0)
+    end
+
+    # Reported from play: three trebles in a row paid nothing, because they
+    # crossed a visit boundary. The rule was right and completely invisible,
+    # which is the same thing as wrong. These pin the state a player now has
+    # on screen to reason about it.
+    it "reports which visit is being thrown, and how far into it" do
+      progress = ->(thrown) { page.evaluate_script("window.Darts.rules.visitProgress(#{thrown})") }
+
+      expect(progress.call(0)).to include("visit" => 1, "visits" => 5, "thrownInVisit" => 0)
+      expect(progress.call(1)).to include("visit" => 1, "thrownInVisit" => 1)
+
+      # A finished visit stays the current one until the next dart is thrown,
+      # which is what the board shows during the result pause.
+      expect(progress.call(3)).to include("visit" => 1, "thrownInVisit" => 3)
+      expect(progress.call(4)).to include("visit" => 2, "thrownInVisit" => 1)
+      expect(progress.call(15)).to include("visit" => 5, "thrownInVisit" => 3)
+    end
+
+    it "telegraphs a live maximum once two trebles are in the same visit" do
+      expect(state["maximumLive"]).to eq(false)
+
+      page.execute_script(<<~JS)
+        window.__watcher = setInterval(function () {
+          var s = window.Darts.state();
+          if (!s.alive || s.dartsThrown >= 2) { clearInterval(window.__watcher); return; }
+          var target = s.phase === "aimX" ? 0 : -0.6059;
+          if ((s.phase === "aimX" || s.phase === "aimY") && Math.abs(s.sweep - target) < 0.008) {
+            document.getElementById("stage").dispatchEvent(new PointerEvent("pointerdown", {
+              clientX: 10, clientY: 10, pointerId: 1, pointerType: "touch",
+              bubbles: true, cancelable: true
+            }));
+          }
+        }, 4);
+      JS
+
+      result = nil
+      80.times do
+        result = state
+        break if result["dartsThrown"] >= 2
+        sleep 0.2
+      end
+
+      expect(result["hits"].map { |h| h["label"] }).to eq(%w[T20 T20])
+      expect(result["visitPoints"]).to eq([60, 60])
+      expect(result["maximumLive"]).to eq(true)
     end
 
     # The sweep advances in fixed increments, so its positions form a grid,

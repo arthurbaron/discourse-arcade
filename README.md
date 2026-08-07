@@ -516,6 +516,30 @@ are aligned exactly as at the oche, so three trebles spanning a visit boundary
 score their points and nothing more. The ceiling moves to 1,150 with all five
 bonuses in, still unreachable for the same reason 900 was.
 
+That alignment rule shipped invisible, and it was reported from play as a bug:
+three trebles in a row paid nothing, because they crossed a boundary. The rule
+was right and unknowable, which for a player is the same thing as wrong. Three
+slots along the top now show the current visit's darts, the one you are about
+to throw is outlined, and when two trebles are already in, the empty slot turns
+accent so the maximum announces itself before the dart rather than after it.
+The hint line names the visit and the dart within it. Any rule a bonus depends
+on has to be on screen; a correct invisible rule is a bug report waiting to
+happen.
+
+Two drawing lessons from the same session. The visit slots use plain
+`fillRect`, not `roundRect`, which only landed in Safari 16.4 and this codebase
+has already shipped one iOS blank screen by assuming a browser had something.
+And the vertical aim phase was drawing no horizontal line at all: it opened one
+path, added the line, then called `beginPath` again for the landing dot, which
+discarded the line before the single `stroke` at the end. The whole second aim
+was played with a dot and no line. Proved by counting accent pixels along the
+sweep's row: 106 of 1,120 broken against 1,120 fixed, and pinned that way, since
+"it reports a score" can never see a missing line. Worth noting how the first
+attempt at that measurement fooled itself: it read the canvas immediately after
+the tap, which reads the frame drawn *before* the phase changed, and reported a
+pass for the broken code. The check now samples state and pixels inside the
+same animation frame.
+
 `darts_spec.rb` walks the geometry point by point (bull, rings, boundaries at
 exactly nine degrees, the full twenty-sector order) and pins the input rules:
 a tap locks one axis while the other keeps sweeping, the dart lands within the

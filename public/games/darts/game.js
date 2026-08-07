@@ -135,10 +135,54 @@
     return BONUS_180;
   }
 
+  // Which visit is being thrown and how far into it, 1-based. Reported from
+  // play as the thing that made the bonus look broken: the rule was right but
+  // invisible, so three trebles across a boundary read as a missed payout.
+  function visitProgress(thrown) {
+    let visit = Math.floor(thrown / VISIT_SIZE);
+    let inVisit = thrown % VISIT_SIZE;
+    // A completed visit still counts as the current one until the next throw,
+    // which is what the board shows during the result pause.
+    if (inVisit === 0 && thrown > 0) {
+      visit -= 1;
+      inVisit = VISIT_SIZE;
+    }
+    return {
+      visit: visit + 1,
+      visits: TOTAL_DARTS / VISIT_SIZE,
+      thrownInVisit: inVisit,
+    };
+  }
+
+  // The points of the visit currently on the board, oldest first.
+  function currentVisitPoints() {
+    let progress = visitProgress(dartsThrown);
+    let start = (progress.visit - 1) * VISIT_SIZE;
+    return hits.slice(start, start + VISIT_SIZE).map(function (h) {
+      return h.points;
+    });
+  }
+
+  // Two trebles in and one dart left is the moment worth telegraphing.
+  function maximumIsLive() {
+    let visit = currentVisitPoints();
+    if (visit.length !== VISIT_SIZE - 1) {
+      return false;
+    }
+    return visit.every(function (points) {
+      return points === 60;
+    });
+  }
+
   function updateHint() {
-    let left = TOTAL_DARTS - dartsThrown;
-    let last = lastHit ? " · Last " + lastHit.label + (lastHit.points > 0 ? " (" + lastHit.points + ")" : "") : "";
-    hintEl.textContent = "Darts " + left + last;
+    let progress = visitProgress(dartsThrown);
+    let last = lastHit
+      ? " · Last " + lastHit.label + (lastHit.points > 0 ? " (" + lastHit.points + ")" : "")
+      : "";
+    hintEl.textContent =
+      "Visit " + progress.visit + "/" + progress.visits +
+      " · Dart " + Math.min(progress.thrownInVisit + 1, VISIT_SIZE) + " of " + VISIT_SIZE +
+      last;
   }
 
   function finish() {
@@ -348,6 +392,9 @@
 
     ctx.save();
     ctx.lineWidth = Math.max(1.5, s * 0.004);
+    // The lines stop short of the visit slots along the top, so an aim never
+    // draws a stripe through this visit's scores.
+    let lineTop = s * 0.085;
 
     if (phase === "aimY") {
       // The locked vertical line stays visible but steps back.
@@ -355,22 +402,31 @@
       ctx.globalAlpha = 0.35;
       ctx.strokeStyle = A.theme.fg;
       ctx.beginPath();
-      ctx.moveTo(lx, 0);
+      ctx.moveTo(lx, lineTop);
       ctx.lineTo(lx, s);
       ctx.stroke();
     }
 
     ctx.globalAlpha = 0.9;
     ctx.strokeStyle = A.theme.accent;
-    ctx.beginPath();
+
+    // Each path is stroked before the next one starts. The first version
+    // opened one path, added the horizontal line, then called beginPath again
+    // for the landing dot, which threw the line away: the whole second aim
+    // phase was played with only a dot to go on and no line at all. Measured,
+    // not guessed: five accent pixels across a 1120 pixel row.
     if (phase === "aimX") {
       let x = boardToCanvas(sweep, 0, s).x;
-      ctx.moveTo(x, 0);
+      ctx.beginPath();
+      ctx.moveTo(x, lineTop);
       ctx.lineTo(x, s);
+      ctx.stroke();
     } else {
       let y = boardToCanvas(0, sweep, s).y;
+      ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(s, y);
+      ctx.stroke();
 
       // Where the dart would land right now.
       let p = boardToCanvas(lockedX, sweep, s);
@@ -379,7 +435,55 @@
       ctx.arc(p.x, p.y, s * 0.012, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // Three slots along the top: this visit's darts. Thrown ones show what they
+  // scored, the one you are about to throw is outlined, and when two trebles
+  // are already in, the empty slot turns accent so the 180 announces itself
+  // before the dart rather than after it.
+  function drawVisit(ctx, s) {
+    let visit = currentVisitPoints();
+    let live = maximumIsLive();
+    let slotW = s * 0.11;
+    let slotH = s * 0.05;
+    let gap = s * 0.014;
+    let totalW = VISIT_SIZE * slotW + (VISIT_SIZE - 1) * gap;
+    let left = (s - totalW) / 2;
+    let top = s * 0.015;
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    for (let i = 0; i < VISIT_SIZE; i++) {
+      let x = left + i * (slotW + gap);
+      let thrown = i < visit.length;
+      let isNext = i === visit.length && phase !== "result";
+      let cy = top + slotH / 2;
+
+      // Plain rectangles rather than roundRect: that only landed in Safari
+      // 16.4, and this codebase has already shipped one iOS blank screen by
+      // assuming a browser had something.
+      if (thrown) {
+        ctx.fillStyle = visit[i] === 60 ? A.theme.accent : "rgba(127, 127, 127, 0.22)";
+        ctx.fillRect(x, top, slotW, slotH);
+      } else {
+        ctx.globalAlpha = live ? 0.9 : 0.35;
+        ctx.strokeStyle = live ? A.theme.accent : A.theme.muted;
+        ctx.lineWidth = Math.max(1.5, s * (isNext || live ? 0.005 : 0.003));
+        ctx.strokeRect(x, top, slotW, slotH);
+        ctx.globalAlpha = 1;
+      }
+
+      if (thrown) {
+        ctx.fillStyle = visit[i] === 60 ? A.theme.bg : A.theme.fg;
+        ctx.font = "700 " + Math.round(s * 0.026) + "px -apple-system, Helvetica, Arial, sans-serif";
+        ctx.fillText(String(visit[i]), x + slotW / 2, cy);
+      }
+    }
+
     ctx.restore();
   }
 
@@ -406,13 +510,14 @@
       return;
     }
 
+    // Below the board, so it never competes with the visit slots along the top.
     ctx.save();
     ctx.fillStyle = lastHit.points >= 40 ? A.theme.accent : A.theme.fg;
-    ctx.font = "700 " + Math.round(s * 0.07) + "px -apple-system, Helvetica, Arial, sans-serif";
+    ctx.font = "700 " + Math.round(s * 0.06) + "px -apple-system, Helvetica, Arial, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     let text = lastHit.points > 0 ? lastHit.label + "  +" + lastHit.points : "MISS";
-    ctx.fillText(text, s * 0.5, s * 0.07);
+    ctx.fillText(text, s * 0.5, s * 0.955);
     ctx.restore();
   }
 
@@ -427,6 +532,7 @@
     drawBoard(ctx, s);
     drawDarts(ctx, s);
     drawSweep(ctx, s);
+    drawVisit(ctx, s);
     drawResult(ctx, s);
   }
 
@@ -450,6 +556,9 @@
         hits: hits.slice(),
         bonuses180,
         celebrating,
+        visit: visitProgress(dartsThrown),
+        visitPoints: currentVisitPoints(),
+        maximumLive: maximumIsLive(),
         config: {
           sweepSteps: SWEEP_STEPS,
           range: RANGE,
@@ -459,7 +568,7 @@
         },
       };
     },
-    rules: { scoreAt, hitAt, bonusFor, dartAlpha },
+    rules: { scoreAt, hitAt, bonusFor, dartAlpha, visitProgress },
   };
 
   updateHint();
