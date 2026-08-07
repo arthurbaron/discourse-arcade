@@ -46,6 +46,14 @@
   let WOBBLE = 0.015;
   let RESULT_STEPS = 40;
 
+  // Fifteen darts are five real visits of three, and three treble twenties in
+  // one visit is the sport's magic number. Worth a bonus and a shout. Visits
+  // are aligned (darts 1-3, 4-6, ...) exactly as at the oche: three trebles
+  // spanning a visit boundary score their points and nothing more.
+  let VISIT_SIZE = 3;
+  let BONUS_180 = 50;
+  let CELEBRATION_STEPS = 110;
+
   // Where the board sits on the stage: centre and radius in stage fractions.
   let CENTRE_X = 0.5;
   let CENTRE_Y = 0.53;
@@ -72,6 +80,8 @@
   let resultTimer = 0;
   let lastHit = null;
   let hits = [];
+  let bonuses180 = 0;
+  let celebrating = false;
 
   function scoreAt(x, y) {
     let hit = hitAt(x, y);
@@ -110,6 +120,21 @@
     return { points: base * mult, base, mult, label };
   }
 
+  // The bonus rule as a pure function. Sixty points is uniquely a treble
+  // twenty (no single or double reaches it), so the points alone identify the
+  // shot.
+  function bonusFor(visitPoints) {
+    if (visitPoints.length !== VISIT_SIZE) {
+      return 0;
+    }
+    for (let i = 0; i < visitPoints.length; i++) {
+      if (visitPoints[i] !== 60) {
+        return 0;
+      }
+    }
+    return BONUS_180;
+  }
+
   function updateHint() {
     let left = TOTAL_DARTS - dartsThrown;
     let last = lastHit ? " · Last " + lastHit.label + (lastHit.points > 0 ? " (" + lastHit.points + ")" : "") : "";
@@ -136,10 +161,25 @@
     hits.push(lastHit);
     dartsThrown++;
     total += hit.points;
-    scoreEl.textContent = String(total);
 
+    // A completed visit gets checked for the maximum. The celebration holds
+    // the result phase longer, because this is the moment the game exists for.
+    celebrating = false;
+    if (hits.length % VISIT_SIZE === 0) {
+      let visit = hits.slice(-VISIT_SIZE).map(function (h) {
+        return h.points;
+      });
+      let bonus = bonusFor(visit);
+      if (bonus > 0) {
+        total += bonus;
+        bonuses180++;
+        celebrating = true;
+      }
+    }
+
+    scoreEl.textContent = String(total);
     phase = "result";
-    resultTimer = RESULT_STEPS;
+    resultTimer = celebrating ? CELEBRATION_STEPS : RESULT_STEPS;
     updateHint();
   }
 
@@ -322,6 +362,24 @@
       return;
     }
 
+    if (celebrating) {
+      // The shout. Big, blinking, and over the whole board, because three
+      // treble twenties deserve nothing less.
+      ctx.save();
+      let visible = Math.floor(resultTimer / 8) % 2 === 0;
+      if (visible) {
+        ctx.fillStyle = A.theme.accent;
+        ctx.font = "800 " + Math.round(s * 0.3) + "px -apple-system, Helvetica, Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("180", s * 0.5, s * 0.46);
+        ctx.font = "700 " + Math.round(s * 0.06) + "px -apple-system, Helvetica, Arial, sans-serif";
+        ctx.fillText("+" + BONUS_180 + " bonus", s * 0.5, s * 0.66);
+      }
+      ctx.restore();
+      return;
+    }
+
     ctx.save();
     ctx.fillStyle = lastHit.points >= 40 ? A.theme.accent : A.theme.fg;
     ctx.font = "700 " + Math.round(s * 0.07) + "px -apple-system, Helvetica, Arial, sans-serif";
@@ -364,10 +422,18 @@
         lockedY,
         lastHit,
         hits: hits.slice(),
-        config: { sweepSteps: SWEEP_STEPS, range: RANGE, wobble: WOBBLE },
+        bonuses180,
+        celebrating,
+        config: {
+          sweepSteps: SWEEP_STEPS,
+          range: RANGE,
+          wobble: WOBBLE,
+          visitSize: VISIT_SIZE,
+          bonus180: BONUS_180,
+        },
       };
     },
-    rules: { scoreAt, hitAt },
+    rules: { scoreAt, hitAt, bonusFor },
   };
 
   updateHint();

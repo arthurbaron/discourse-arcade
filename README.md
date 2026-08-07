@@ -510,12 +510,25 @@ of reach, the same no-wall rule every game here follows. A small landing
 wobble (0.015 of the board radius, a disc so it cannot favour an axis) keeps
 two identical taps from being two identical darts.
 
+Fifteen darts are five real visits of three, and three treble twenties in one
+visit is a 180: a huge blinking shout across the board and a +50 bonus. Visits
+are aligned exactly as at the oche, so three trebles spanning a visit boundary
+score their points and nothing more. The ceiling moves to 1,150 with all five
+bonuses in, still unreachable for the same reason 900 was.
+
 `darts_spec.rb` walks the geometry point by point (bull, rings, boundaries at
 exactly nine degrees, the full twenty-sector order) and pins the input rules:
 a tap locks one axis while the other keeps sweeping, the dart lands within the
 advertised wobble of the locked crossing, taps during the result pause are
 ignored so a double tap cannot burn a dart, and the total is exactly the sum
-of the fifteen hits.
+of the fifteen hits plus fifty per 180. The 180 spec is worth a note: the
+sweep's positions form a fixed grid, and one grid position sits close enough
+to the treble twenty's centre that a script watching `state().sweep` and
+tapping on the right step hits T20 every time, wobble included. That is how
+the spec forces a 180 on demand, and it is also a live demonstration of the
+documented cheat ceiling: scripts can do what thumbs cannot, which is why an
+implausibly perfect card is treated as self-incriminating rather than as
+impossible.
 
 ## Known limits
 

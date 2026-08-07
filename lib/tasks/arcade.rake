@@ -146,9 +146,10 @@ ARCADE_GAMES = [
     thumbnail: "darts.svg",
     score_direction: "high",
     score_unit: "points",
-    # Fifteen perfect treble twenties. The sweep makes that unreachable: the
-    # best of 60,000 simulated skilled runs was 740.
-    max_plausible_score: 900,
+    # Fifteen perfect treble twenties plus five 180 bonuses. The sweep makes
+    # that unreachable: the best of 60,000 simulated skilled runs was 740
+    # before bonuses.
+    max_plausible_score: 1_150,
     min_run_seconds: 5,
     position: 13,
   },

@@ -152,6 +152,51 @@ RSpec.describe "Darts", type: :system do
     end
   end
 
+  describe "the 180" do
+    it "pays the bonus only for three treble twenties in one visit" do
+      expect(page.evaluate_script("window.Darts.rules.bonusFor([60, 60, 60])")).to eq(50)
+      expect(page.evaluate_script("window.Darts.rules.bonusFor([60, 60, 57])")).to eq(0)
+      expect(page.evaluate_script("window.Darts.rules.bonusFor([60, 60])")).to eq(0)
+      expect(page.evaluate_script("window.Darts.rules.bonusFor([20, 60, 60])")).to eq(0)
+    end
+
+    # The sweep advances in fixed increments, so its positions form a grid,
+    # and one of those positions sits within 0.008 of the treble twenty's
+    # centre on each axis. Tapping exactly there plus the maximum wobble is
+    # still inside the treble, so a watcher that taps on the right step hits
+    # T20 every time. That is also, incidentally, the documented cheat
+    # ceiling: scripts can do what thumbs cannot.
+    it "flashes and pays when a visit is three treble twenties" do
+      page.execute_script(<<~JS)
+        window.__watcher = setInterval(function () {
+          var s = window.Darts.state();
+          if (!s.alive || s.dartsThrown >= 3) { clearInterval(window.__watcher); return; }
+          var target = s.phase === "aimX" ? 0 : -0.6059;
+          if ((s.phase === "aimX" || s.phase === "aimY") && Math.abs(s.sweep - target) < 0.008) {
+            document.getElementById("stage").dispatchEvent(new PointerEvent("pointerdown", {
+              clientX: 10, clientY: 10, pointerId: 1, pointerType: "touch",
+              bubbles: true, cancelable: true
+            }));
+          }
+        }, 4);
+      JS
+
+      # Three perfect darts at roughly a second of sweep each, plus pauses.
+      result = nil
+      100.times do
+        result = state
+        break if result["dartsThrown"] >= 3
+        sleep 0.2
+      end
+
+      expect(result["dartsThrown"]).to eq(3)
+      expect(result["hits"].map { |h| h["label"] }).to eq(%w[T20 T20 T20])
+      expect(result["bonuses180"]).to eq(1)
+      expect(result["total"]).to eq(180 + 50)
+      expect(result["celebrating"]).to eq(true)
+    end
+  end
+
   describe "a full turn" do
     it "adds every dart to the total and ends after fifteen" do
       # Tap through all fifteen darts, letting the sweep sit wherever it is.
@@ -167,7 +212,11 @@ RSpec.describe "Darts", type: :system do
       final = state
       expect(final["dartsThrown"]).to eq(15)
       expect(final["alive"]).to eq(false)
-      expect(final["total"]).to eq(final["hits"].sum { |h| h["points"] })
+
+      # The total is the fifteen hits plus fifty per 180, an invariant that
+      # holds whatever the blind taps happened to land on.
+      expected = final["hits"].sum { |h| h["points"] } + final["bonuses180"] * 50
+      expect(final["total"]).to eq(expected)
       expect(page).to have_css("#over.visible")
     end
   end
