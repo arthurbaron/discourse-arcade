@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" role="img" aria-label="Darts">
+  <!-- A flat board: alternating wedges, the two scoring rings, a bull, and
+       one dart sitting in the treble twenty. -->
+  <g transform="translate(160 90)">
+    <circle r="78" fill="#808080" opacity="0.14" />
+
+    <!-- Simplified sector wedges: eight alternating slices instead of twenty,
+         which reads as a dartboard at thumbnail size where twenty would blur. -->
+    <g fill="#808080" opacity="0.28">
+      <path d="M0 0 L-28 -68 A73.5 73.5 0 0 1 28 -68 Z" />
+      <path d="M0 0 L68 -28 A73.5 73.5 0 0 1 68 28 Z" />
+      <path d="M0 0 L28 68 A73.5 73.5 0 0 1 -28 68 Z" />
+      <path d="M0 0 L-68 28 A73.5 73.5 0 0 1 -68 -28 Z" />
+    </g>
+
+    <!-- Double ring -->
+    <circle r="70" fill="none" stroke="#4a7fb5" stroke-width="6" opacity="0.55" />
+    <!-- Triple ring -->
+    <circle r="44" fill="none" stroke="#4a7fb5" stroke-width="6" opacity="0.8" />
+
+    <!-- Bull -->
+    <circle r="10" fill="#808080" opacity="0.6" />
+    <circle r="4.5" fill="#4a7fb5" />
+
+    <!-- The dart, in the treble twenty. -->
+    <circle cx="0" cy="-44" r="5" fill="#4a7fb5" />
+    <path d="M0 -44 L26 -78" stroke="#4a7fb5" stroke-width="3" stroke-linecap="round" opacity="0.7" />
+    <path d="M26 -78 l6 -10 M26 -78 l11 -3" stroke="#4a7fb5" stroke-width="3" stroke-linecap="round" opacity="0.7" />
+  </g>
+</svg>

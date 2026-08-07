@@ -268,4 +268,30 @@ RSpec.describe "Arcade games", type: :system do
 
     expect(expect_single_score).to eq(0)
   end
+
+  it "Darts reports a score after fifteen darts" do
+    open_game("darts/index.html")
+
+    # Taps at a fixed interval, blind to the sweep, so the darts land wherever
+    # the lines happen to be. Whether they score is not the point here; that
+    # exactly one total arrives after fifteen is.
+    page.execute_script(<<~JS)
+      (function () {
+        var stage = document.getElementById("stage");
+        function tap() {
+          stage.dispatchEvent(new PointerEvent("pointerdown", {
+            clientX: 10, clientY: 10, pointerId: 1, pointerType: "touch",
+            bubbles: true, cancelable: true
+          }));
+        }
+        var timer = setInterval(function () {
+          var s = window.Darts.state();
+          if (!s.alive) { clearInterval(timer); return; }
+          if (s.phase === "aimX" || s.phase === "aimY") { tap(); }
+        }, 90);
+      })();
+    JS
+
+    expect(expect_single_score).to be >= 0
+  end
 end

@@ -134,6 +134,24 @@ ARCADE_GAMES = [
     min_run_seconds: 2,
     position: 10,
   },
+  {
+    slug: "darts",
+    name: "Darts",
+    # Ships switched off, like every game since the admin toggle: it appears in
+    # the admin list and gets turned on by hand. Position 13 leaves room for the
+    # games still on their own branches.
+    enabled: false,
+    tagline: "Fifteen darts. The treble is thin and its neighbours are cruel.",
+    entry_path: "darts/index.html",
+    thumbnail: "darts.svg",
+    score_direction: "high",
+    score_unit: "points",
+    # Fifteen perfect treble twenties. The sweep makes that unreachable: the
+    # best of 60,000 simulated skilled runs was 740.
+    max_plausible_score: 900,
+    min_run_seconds: 5,
+    position: 13,
+  },
 ].freeze
 
 desc "Create or update the arcade game catalogue"

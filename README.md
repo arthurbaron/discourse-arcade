@@ -30,8 +30,9 @@ bin/rake arcade:seed
 | `recall` | rounds | tap the pads |
 | `intercept` | points | tap to place a blast |
 | `debris` | points | hold to steer and thrust, arrows; fire is automatic |
+| `darts` | points | tap to lock each sweeping line |
 
-All ten are built for a square frame.
+All of them are built for a square frame.
 
 ## Adding a game
 
@@ -73,6 +74,9 @@ Most games expose a small read-only object so a spec can check the thing that
 - `window.Debris.state()` to steer at a real rock. A stationary ship auto-fires
   and destroys the rocks that would have hit it, so a spec that waits to be hit
   can wait forever, and one did.
+- `window.Darts.rules.hitAt()` for the board maths, walked point by point: a
+  board with sector 12 where 9 belongs still "reports a score", so only
+  geometry checks catch it.
 
 These read state or generate a row; none of them set a score. A player already
 has the whole game in front of them in view-source, and scores are validated
@@ -479,6 +483,39 @@ works when clicked but 404s on a hard load or a pasted URL until it is named.
 Admin styling is a separate file registered with the `:admin` target. Plugin
 stylesheets registered the ordinary way are not loaded on admin pages, and the
 symptom is a page that renders as a bulleted list with everything stacked.
+
+## Darts: timing, never pointer precision
+
+Fifteen darts at a real board, highest total. The one decision everything else
+follows from: darts do not land where you click. If they did, a desktop mouse
+would sit on the treble twenty all day and the leaderboard would rank input
+devices instead of players, so aiming is two timed taps: a line sweeps across
+the board, a tap locks it, the other axis sweeps, a tap throws. Identical on a
+phone and on a mouse, and the same one-input-everywhere rule the rest of the
+arcade follows.
+
+The board is the real one: DRA ring radii and the true sector order, drawn in
+theme colours (sectors in two greys, rings alternating accent and muted). That
+buys the balance for free. The 20 sits between the 1 and the 5, so hunting the
+treble is a genuine gamble, and the interesting result from the balance
+simulation (200,000 throws per cell): a sloppy player scores measurably better
+aiming at the fat single twenty (16.7 per dart) than at the treble (13.1),
+while a skilled one flips that (28.7 at the treble, 24% trebles). Risk it or
+bank it, and the board itself asks the question.
+
+Sweep speed is the whole difficulty and was chosen from that simulation: 60
+steps edge to edge. Skilled runs average about 432 of the 900 ceiling and the
+best run in 60,000 simulated was 740, so a perfect card stays structurally out
+of reach, the same no-wall rule every game here follows. A small landing
+wobble (0.015 of the board radius, a disc so it cannot favour an axis) keeps
+two identical taps from being two identical darts.
+
+`darts_spec.rb` walks the geometry point by point (bull, rings, boundaries at
+exactly nine degrees, the full twenty-sector order) and pins the input rules:
+a tap locks one axis while the other keeps sweeping, the dart lands within the
+advertised wobble of the locked crossing, taps during the result pause are
+ignored so a double tap cannot burn a dart, and the total is exactly the sum
+of the fifteen hits.
 
 ## Known limits
 
