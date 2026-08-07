@@ -197,6 +197,35 @@ RSpec.describe "Darts", type: :system do
     end
   end
 
+  describe "the board staying readable" do
+    # Fifteen throws at the twenty would bury the treble under white dots, so
+    # darts come off the board the way they do at the oche: the current visit
+    # stands full, the previous one fades, anything older is gone. At most six
+    # dots ever show.
+    it "fades the previous visit and removes everything older" do
+      alpha = ->(index, total) { page.evaluate_script("window.Darts.rules.dartAlpha(#{index}, #{total})") }
+
+      # Mid-run, eight darts thrown: darts 7-8 are the current visit (full),
+      # 4-6 the previous (faded), 1-3 are off the board.
+      expect(alpha.call(7, 8)).to eq(1)
+      expect(alpha.call(6, 8)).to eq(1)
+      expect(alpha.call(5, 8)).to eq(0.3)
+      expect(alpha.call(3, 8)).to eq(0.3)
+      expect(alpha.call(2, 8)).to eq(0)
+      expect(alpha.call(0, 8)).to eq(0)
+
+      # A freshly completed visit is still the current one until the next dart.
+      expect(alpha.call(2, 3)).to eq(1)
+      expect(alpha.call(0, 3)).to eq(1)
+
+      # Never more than two visits' worth visible, at any point in the run.
+      (1..15).each do |total|
+        visible = (0...total).count { |i| alpha.call(i, total) > 0 }
+        expect(visible).to be <= 6
+      end
+    end
+  end
+
   describe "a full turn" do
     it "adds every dart to the total and ends after fifteen" do
       # Tap through all fifteen darts, letting the sweep sit wherever it is.

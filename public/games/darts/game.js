@@ -305,14 +305,40 @@
     ctx.restore();
   }
 
+  // How visible a dart is, by how many visits ago it was thrown. At the oche
+  // you pull your darts after every visit; here the current visit stands
+  // full, the previous one fades, and everything older is gone. That caps the
+  // board at six dots, so fifteen throws at the twenty never bury the target.
+  function dartAlpha(hitIndex, totalHits) {
+    if (totalHits === 0) {
+      return 0;
+    }
+    let currentVisit = Math.floor((totalHits - 1) / VISIT_SIZE);
+    let age = currentVisit - Math.floor(hitIndex / VISIT_SIZE);
+    if (age === 0) {
+      return 1;
+    }
+    if (age === 1) {
+      return 0.3;
+    }
+    return 0;
+  }
+
   function drawDarts(ctx, s) {
+    ctx.save();
     for (let i = 0; i < hits.length; i++) {
+      let alpha = dartAlpha(i, hits.length);
+      if (alpha <= 0) {
+        continue;
+      }
       let p = boardToCanvas(hits[i].x, hits[i].y, s);
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = A.theme.fg;
       ctx.beginPath();
       ctx.arc(p.x, p.y, s * 0.009, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
   }
 
   function drawSweep(ctx, s) {
@@ -433,7 +459,7 @@
         },
       };
     },
-    rules: { scoreAt, hitAt, bonusFor },
+    rules: { scoreAt, hitAt, bonusFor, dartAlpha },
   };
 
   updateHint();
