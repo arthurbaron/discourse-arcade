@@ -46,6 +46,15 @@ All of them are built for a square frame.
 5. Add the game to `spec/system/games_spec.rb`. That spec drives every game to
    game over in a real browser and checks it reports exactly one score.
 
+Anything you add on the Ember side must be `.gjs`. The `.hbs` extension is
+deprecated and support for it is being removed during the `2026.8` cycle.
+
+```bash
+pnpm i        # once, in this directory
+pnpm lint     # js, prettier and css in one go
+pnpm lint:fix
+```
+
 ### The shared shell (optional)
 
 `public/games/_shared/arcade.css` and `arcade.js` carry the parts every game we
@@ -432,9 +441,9 @@ need nested directories:
 
     routes/arcade/index.js        not  routes/arcade-index.js
     controllers/arcade/index.js   not  controllers/arcade-index.js
-    templates/arcade/index.hbs    not  templates/arcade-index.hbs
+    templates/arcade/index.gjs    not  templates/arcade-index.gjs
 
-`templates/arcade.hbs` stays where it is, since route `arcade` asks for
+`templates/arcade.gjs` stays where it is, since route `arcade` asks for
 `template:arcade` and that already matches.
 
 `template_paths_spec.rb` reads the browser console and fails on any of these
@@ -443,6 +452,50 @@ way. It earned its keep immediately. The first attempt renamed only the template
 and the spec caught that routes and controllers had the same problem, so without
 it a half fix would have shipped and the notice would have stayed exactly where
 it was.
+
+## Everything is .gjs, and why that was not optional
+
+`discourse.hbs-extension` was the second deprecation to nag an admin on every
+page load, and unlike the first it came with a clock: support for `.hbs` is
+being removed during the `2026.8` cycle, which is the release track this forum
+already runs. So this was a deadline, not tidying.
+
+The conversion itself is mechanical for route templates. They become
+`export default <template>...</template>`, and every `this.foo` becomes
+`@controller.foo` because a route template now receives the controller as an
+argument rather than being bound to it. Helpers stop being ambient and get
+imported: `on` from `@ember/modifier`, `fn` from `@ember/helper`, `LinkTo` from
+`@ember/routing`, `eq` from `discourse/truth-helpers`, `icon` from
+`discourse/ui-kit/helpers/d-icon`.
+
+`arcade-frame` was the real work, and it hid a trap worth remembering. It was a
+classic `@ember/component`, which brings its own wrapper element, and the call
+site put `class="arcade-frame"` on it. A Glimmer component is tagless, so that
+class simply lands nowhere. `.arcade-frame` is `position: relative` with a fixed
+aspect ratio and both the canvas and the overlay are absolutely positioned
+inside it, so the whole game page would have collapsed. The component now renders
+its own wrapper with `...attributes`, and owns that class rather than trusting a
+caller to pass it.
+
+Two other things had to change with it. `this.element` does not exist on a
+Glimmer component, so the iframe registers itself through `didInsert` instead of
+being found by a DOM query, which is also more honest about the fact that this
+component only ever wants the one element it owns. And `didInsertElement` /
+`willDestroyElement` became the constructor and `willDestroy`; missing that
+second one leaks a `message` listener for every game page a member visits.
+
+There is an official codemod (`pnpm dlx https://github.com/discourse/discourse-gjs-codemod`)
+which is the right starting point for a bigger plugin. It expects a plugin that
+already lints clean, which this one did not: the classic component tripped
+`ember/no-classic-components`, and that had to be resolved by hand first, at
+which point the remaining templates were small enough to convert directly.
+
+The plugin now carries its own `package.json`, `eslint.config.mjs`,
+`.prettierrc.cjs` and `stylelint.config.mjs`, copied from the plugin skeleton.
+That is worth having beyond this migration: linting used to run from whichever
+Discourse checkout happened to be handy, and the two on this machine disagreed,
+one reporting a clean tree and the other forty-one offences in the same files.
+`pnpm lint` in the plugin directory is now the answer.
 
 ## Switching games on and off from admin
 

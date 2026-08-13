@@ -83,7 +83,12 @@ export default class ArcadeGameToggles extends Component {
             >
               <div class="arcade-admin-games__art">
                 {{#if game.thumbnail_url}}
-                  <img src={{game.thumbnail_url}} alt="" width="72" height="41" />
+                  <img
+                    src={{game.thumbnail_url}}
+                    alt=""
+                    width="72"
+                    height="41"
+                  />
                 {{/if}}
               </div>
 
@@ -93,10 +98,7 @@ export default class ArcadeGameToggles extends Component {
                   <p class="arcade-admin-games__tagline">{{game.tagline}}</p>
                 {{/if}}
                 <p class="arcade-admin-games__meta">
-                  {{i18n
-                    "arcade.admin.games.scores"
-                    count=game.scores_count
-                  }}
+                  {{i18n "arcade.admin.games.scores" count=game.scores_count}}
                 </p>
               </div>
 
