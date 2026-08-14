@@ -32,6 +32,16 @@ export default class ArcadeFrame extends Component {
   // A Glimmer component has no `this.element`, so the iframe hands itself over
   // when it renders. That is also more honest than reaching into the DOM: this
   // component only ever wants the one element it owns.
+  //
+  // It is set once and kept for the life of the component, and it must NOT be
+  // cleared between runs. didInsert only fires when the element is *inserted*,
+  // and Play again does not insert anything: the {{#if this.frameSrc}} stays
+  // true, so Glimmer reuses this same iframe and only updates its src. Clearing
+  // this meant every run after the first found _frame null, dropped the score
+  // message on the floor, and left the overlay stuck on "playing" with no Play
+  // again button. The element survives the src change, and so does the
+  // contentWindow identity this is compared against, so holding the reference
+  // is correct.
   _frame = null;
 
   constructor() {
@@ -74,7 +84,6 @@ export default class ArcadeFrame extends Component {
       this._runCount += 1;
       this.lastScore = null;
       this.isPersonalBest = false;
-      this._frame = null;
       this.frameSrc = this._buildFrameSrc();
       this.status = "playing";
     } catch (e) {

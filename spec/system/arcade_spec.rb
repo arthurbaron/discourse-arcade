@@ -89,6 +89,47 @@ RSpec.describe "Arcade", type: :system do
     expect(ArcadeRun.find(score.arcade_run_id).consumed?).to eq(true)
   end
 
+  # Play again is a different code path from the first run and nothing covered
+  # it, which let a real regression ship: the frame cached its iframe from a
+  # didInsert that only fires on insertion, and Play again reuses the same
+  # element with a new src. Every run after the first silently dropped its
+  # score and never showed the result overlay. One run being green said nothing
+  # about two.
+  it "saves the score from a second run in the same visit" do
+    visit "/arcade/g/#{game.slug}"
+
+    2.times do |attempt|
+      find(attempt.zero? ? ".arcade-frame-start" : "button", text: /Play/).click
+      expect(page).to have_css(".arcade-frame-canvas")
+
+      within_frame(find(".arcade-frame-canvas")) do
+        page.execute_script(<<~JS)
+          (function () {
+            var dirs = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+            var over = document.getElementById("over");
+            var moves = 0;
+            while (moves < 5000 && !over.classList.contains("visible")) {
+              window.dispatchEvent(
+                new KeyboardEvent("keydown", {
+                  key: dirs[Math.floor(Math.random() * 4)],
+                })
+              );
+              moves++;
+            }
+          })();
+        JS
+      end
+
+      # The overlay reappearing is half the bug: without it there is no way back
+      # into the game from the game over screen.
+      expect(page).to have_css(".arcade-frame-score", wait: 20)
+      expect(page).to have_button("Play again")
+      expect(ArcadeScore.where(user_id: player.id).count).to eq(attempt + 1)
+    end
+
+    expect(find(".arcade-stats")).to have_text("2")
+  end
+
   it "shows an existing score on the leaderboard" do
     run = ArcadeRun.issue!(player, game)
     ArcadeScore.create!(
