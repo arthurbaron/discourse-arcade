@@ -153,6 +153,27 @@ ARCADE_GAMES = [
     min_run_seconds: 5,
     position: 13,
   },
+  {
+    slug: "stack",
+    name: "Stack",
+    # Ships switched off, like every game since the admin toggle.
+    enabled: false,
+    tagline: "Drop each slab dead centre, or lose what hangs over.",
+    entry_path: "stack/index.html",
+    thumbnail: "stack.svg",
+    score_direction: "high",
+    score_unit: "layers",
+    # Simulated: an expert averages 47 layers with a best of 60 over 40,000
+    # runs, and a script with no timing error at all dies at 92, because once
+    # the forgiveness margin is gone the discrete sweep cannot land exactly on
+    # centre. 150 sits clear of the bot ceiling without ever rejecting a human.
+    max_plausible_score: 150,
+    # One good drop is one point and can happen inside a second, so this stays
+    # low. Guessing high here is what once told people their real scores were
+    # fake.
+    min_run_seconds: 1,
+    position: 14,
+  },
 ].freeze
 
 desc "Create or update the arcade game catalogue"

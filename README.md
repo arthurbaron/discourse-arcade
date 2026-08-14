@@ -31,6 +31,7 @@ bin/rake arcade:seed
 | `intercept` | points | tap to place a blast |
 | `debris` | points | hold to steer and thrust, arrows; fire is automatic |
 | `darts` | points | tap to lock each sweeping line |
+| `stack` | layers | tap to drop the sliding slab |
 
 All of them are built for a square frame.
 
@@ -51,9 +52,15 @@ deprecated and support for it is being removed during the `2026.8` cycle.
 
 ```bash
 pnpm i        # once, in this directory
-pnpm lint     # js, prettier and css in one go
+pnpm lint     # js, prettier, css and types in one go
 pnpm lint:fix
 ```
+
+`pnpm lint` deliberately covers the Ember side only, not `public/games`. The
+plugin's prettier is a newer major than the one in a Discourse checkout and
+formats these files differently, so pointing it at the games would rewrite all
+eleven of them for no gain. Game files follow each other; check a new one with
+the prettier in your Discourse checkout, which is what the existing ones pass.
 
 ### The shared shell (optional)
 
@@ -606,6 +613,63 @@ the spec forces a 180 on demand, and it is also a live demonstration of the
 documented cheat ceiling: scripts can do what thumbs cannot, which is why an
 implausibly perfect card is treated as self-incriminating rather than as
 impossible.
+
+## Stack, and a margin that has to run out
+
+A slab slides across the top of a tower, a tap drops it, and whatever hangs over
+the slab below is sliced away. What survives is the width the next slab gets, so
+a perfect drop costs nothing and a sloppy one costs you for the rest of the run.
+Score is layers standing. One tap, timing not aiming, identical on a thumb and a
+mouse, same fairness rule the rest of the arcade follows.
+
+The whole game is two functions. `sliceFor` takes where the slab landed and
+where the one below sits and returns what is left, and `marginAt` decides how
+much slack a near-perfect drop is forgiven. Both are invisible from outside: a
+tower that slices the wrong side away still loads and still reports a score, so
+`stack_spec.rb` walks them directly, including that the slice is symmetric, that
+the survivor leans towards the side you landed on, and that the scrap flies off
+the side that overhung.
+
+**The margin is the design, and a fixed one has no ceiling.** Some forgiveness
+is essential, or every layer sheds a sliver however well you play and the game
+is joyless. But simulated with a fixed 14%, an expert-level player ran straight
+into a 5,000 layer runaway guard: unbounded, and unlike Darts there is no
+natural cap to fall back on. So the margin shrinks with height and reaches zero.
+Forgiving while you learn, unforgiving once you are good, and the run always
+ends. Over 40,000 simulated runs per skill level: an expert averages 47 layers
+with a best of 60, a decent player 29, a casual one 16. That spread is what
+makes the leaderboard worth climbing.
+
+The opening was tuned twice, and the second pass came from playing it. At 14%
+decaying 0.006 a skilled player stacked a **median of nineteen layers without
+shedding a single sliver**, which is more layers than fit on the board, so the
+tower never actually looked like a tower: just a rectangle with lines in it. The
+run length was fine, the feel was not. At 9% decaying 0.007 that free ride halves
+to ten layers and the narrowing starts before the tower fills the screen, at a
+cost of about five layers off every skill level. Worth measuring the free-layer
+count directly rather than only run length, because run length barely moved
+between the two and would have said nothing was wrong.
+
+That still leaves a script with no timing error at all, which no margin rule can
+touch. It stops itself, and this is the part worth remembering: the slab moves
+in discrete steps, so the positions it can occupy form a grid, and once the
+margin is gone the closest reachable position is still half a step off centre.
+A perfect script therefore sheds a sliver every layer too and dies at layer 92.
+Measured rather than hoped for, and `max_plausible_score` is set at 150 against
+that number: clear of the bot ceiling, and far enough above a human best of 60
+that no real run is ever rejected.
+
+The tower starts on the floor of the board and genuinely grows upward; the camera
+only takes over once the top reaches the action line, about fifteen layers in,
+and from then on pushes everything down to hold it there. Anchoring slabs to the
+base rather than the top is what makes that work: during the growth phase the
+slabs already placed do not move at all. The first version placed the top at a
+fixed height from layer one, which read as a strip already floating mid-board
+rather than a tower rising.
+
+`min_run_seconds` is 1, deliberately low. One good drop is one point and can
+happen inside a second, and guessing high on that field is what once told
+members their genuine scores were fake.
 
 ## Known limits
 

@@ -30,10 +30,11 @@ RSpec.describe ArcadeGame, type: :task do
     expect(ArcadeGame.pluck(:slug)).to include("2048", "penalty", "debris")
   end
 
-  it "brings Debris and Darts in switched off, ready to be turned on by hand" do
+  it "brings the newest games in switched off, ready to be turned on by hand" do
     seed
     expect(ArcadeGame.find_by(slug: "debris").enabled).to eq(false)
     expect(ArcadeGame.find_by(slug: "darts").enabled).to eq(false)
+    expect(ArcadeGame.find_by(slug: "stack").enabled).to eq(false)
     expect(ArcadeGame.find_by(slug: "penalty").enabled).to eq(true)
   end
 

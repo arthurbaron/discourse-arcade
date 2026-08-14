@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" role="img" aria-label="Stack">
+  <!-- A tower narrowing as it climbs, the next slab sliding in above it, and
+       one sliced scrap on its way down. -->
+  <g fill="#808080">
+    <rect x="96" y="152" width="128" height="12" rx="2" opacity="0.28" />
+    <rect x="101" y="137" width="118" height="12" rx="2" opacity="0.32" />
+    <rect x="108" y="122" width="104" height="12" rx="2" opacity="0.36" />
+    <rect x="112" y="107" width="92" height="12" rx="2" opacity="0.4" />
+    <rect x="118" y="92" width="78" height="12" rx="2" opacity="0.46" />
+    <rect x="122" y="77" width="66" height="12" rx="2" opacity="0.52" />
+  </g>
+
+  <!-- The most recent layer, brightest. -->
+  <rect x="127" y="62" width="54" height="12" rx="2" fill="#e8e8e8" opacity="0.85" />
+
+  <!-- The slab you are aiming, in the accent, offset to show it sliding. -->
+  <rect x="160" y="38" width="54" height="12" rx="2" fill="#4a7fb5" />
+  <path d="M187 52 v8" stroke="#4a7fb5" stroke-width="1.5" opacity="0.5" />
+
+  <!-- A scrap already sliced off, tumbling away. -->
+  <rect x="238" y="104" width="16" height="10" rx="2" fill="#808080" opacity="0.35" transform="rotate(14 246 109)" />
+</svg>

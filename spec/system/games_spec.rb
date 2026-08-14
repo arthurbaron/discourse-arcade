@@ -269,6 +269,32 @@ RSpec.describe "Arcade games", type: :system do
     expect(expect_single_score).to eq(0)
   end
 
+  it "Stack reports a score once the tower runs out of slab" do
+    open_game("stack/index.html")
+
+    # Taps the instant the slab reaches an edge, so every drop hangs over as far
+    # as it can and the tower is gone in a handful of layers.
+    page.execute_script(<<~JS)
+      (function () {
+        var stage = document.getElementById("stage");
+        var timer = setInterval(function () {
+          var s = window.Stack.state();
+          if (!s.alive) { clearInterval(timer); return; }
+          if (!s.slab) { return; }
+          var half = s.slab.w / 2;
+          if (s.slab.x <= half + 0.002 || s.slab.x >= 1 - half - 0.002) {
+            stage.dispatchEvent(new PointerEvent("pointerdown", {
+              clientX: 10, clientY: 10, pointerId: 1, pointerType: "touch",
+              bubbles: true, cancelable: true
+            }));
+          }
+        }, 8);
+      })();
+    JS
+
+    expect(expect_single_score).to be >= 0
+  end
+
   it "Darts reports a score after fifteen darts" do
     open_game("darts/index.html")
 
