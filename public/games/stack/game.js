@@ -15,15 +15,21 @@
  *
  * So the margin shrinks with height and reaches zero at layer 13. Forgiving
  * while you learn, unforgiving once you are good, and the run always ends.
- * Measured over 40,000 simulated runs per skill level: an expert averages 47
- * layers with a best of 60, a decent player 29, a casual one 16.
+ * The sweep speed was slowed to 80% of its original pace on request, which
+ * gives everyone a little more room to read the board: measured over 40,000
+ * simulated runs per skill level, an expert now averages 54 layers with a
+ * best of 71, a decent player 34, a casual one 20.
  *
  * That still leaves a script with no timing error at all, which no amount of
  * margin decay would stop. It stops itself: the slab moves in discrete steps,
  * so the positions it can occupy form a grid, and once the margin is gone the
- * closest reachable position is still half a step off centre. A perfect script
- * therefore sheds a sliver every layer too, and dies at layer 92. Measured, not
- * assumed, and that is what the plausibility ceiling is set against.
+ * closest reachable position is still half a step off centre. A perfect
+ * tap-bot, driven against the real game rather than a model of it, dies at
+ * layer 161. Measured directly rather than assumed: an earlier hand-derived
+ * estimate of 92 for the pre-slowdown speed turned out to be wrong when
+ * actually run, and the true figure (147) left only 3 layers of headroom
+ * under the plausibility ceiling below. Worth remembering that a model of the
+ * game is not the game.
  */
 (function () {
   "use strict";
@@ -37,10 +43,13 @@
   let MIN_W = 0.035;
   let SLAB_H = 0.042;
 
-  // The slab sweeps the full board and speeds up as you climb.
-  let SPEED_START = 0.011;
-  let SPEED_PER_LAYER = 0.00035;
-  let SPEED_MAX = 0.03;
+  // The slab sweeps the full board and speeds up as you climb. Slowed to 80%
+  // of the original pace on request: easier to read, a bit more forgiving,
+  // and simulated to still end every run comfortably under the plausibility
+  // ceiling below.
+  let SPEED_START = 0.0088;
+  let SPEED_PER_LAYER = 0.00028;
+  let SPEED_MAX = 0.024;
 
   // The forgiveness margin, as a fraction of the current slab's width. Started
   // at 14% decaying 0.006, and that was reported from play as too soft: a
@@ -64,6 +73,21 @@
 
   let PERFECT_STEPS = 26;
   let OVER_STEPS = 16;
+
+  // Purely decorative: something drifts through the empty sky above the
+  // action line as you climb, changing with height so the milestone is felt
+  // as well as counted. All of it lives above ACTION_Y, which the tower never
+  // reaches, so it can never overlap the game itself.
+  let SKY_STAGES = [
+    { type: "bird", until: 14, y: 0.16, w: 0.032, speed: 0.0035 },
+    { type: "plane", until: 34, y: 0.1, w: 0.09, speed: 0.006 },
+    { type: "satellite", until: 59, y: 0.05, w: 0.05, speed: 0.0032 },
+    { type: "ufo", until: Infinity, y: 0.08, w: 0.075, speed: 0.005 },
+  ];
+  let SPACE_FROM = 35; // stars appear once the sky reaches the satellite stage
+  let flyer = null; // { type, x, y, w, speed }
+  let flyerWait = 90;
+  let stars = null;
 
   let stage = document.getElementById("stage");
   let view = A.canvas(document.getElementById("view"));
@@ -123,6 +147,32 @@
 
   function topSlab() {
     return tower[tower.length - 1];
+  }
+
+  function skyStageFor(layer) {
+    for (let i = 0; i < SKY_STAGES.length; i++) {
+      if (layer < SKY_STAGES[i].until) {
+        return SKY_STAGES[i];
+      }
+    }
+    return SKY_STAGES[SKY_STAGES.length - 1];
+  }
+
+  // Generated once, on first use, and kept: a fixed scatter reads as a sky,
+  // one that reshuffles every frame reads as static.
+  function ensureStars() {
+    if (!stars) {
+      stars = [];
+      for (let i = 0; i < 16; i++) {
+        stars.push({ x: Math.random(), y: 0.02 + Math.random() * 0.28 });
+      }
+    }
+    return stars;
+  }
+
+  function spawnFlyer() {
+    let sky = skyStageFor(layers);
+    flyer = { type: sky.type, x: -sky.w, y: sky.y, w: sky.w, speed: sky.speed };
   }
 
   function updateHint() {
@@ -204,6 +254,20 @@
       }
     }
 
+    // The sky drifts regardless of what else is happening, same as the scraps.
+    if (flyer) {
+      flyer.x += flyer.speed;
+      if (flyer.x > 1 + flyer.w) {
+        flyer = null;
+        flyerWait = 260 + Math.random() * 260;
+      }
+    } else {
+      flyerWait--;
+      if (flyerWait <= 0) {
+        spawnFlyer();
+      }
+    }
+
     if (ending > 0) {
       ending--;
       if (ending === 0) {
@@ -277,6 +341,56 @@
     ctx.restore();
   }
 
+  // Small and plain on purpose: a silhouette you read at a glance, not an
+  // illustration. Everything shares the tower's muted tone, so it always
+  // stays background.
+  function drawFlyer(ctx, s, f) {
+    let x = f.x * s;
+    let y = f.y * s;
+    let w = f.w * s;
+
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = A.theme.muted;
+    ctx.fillStyle = A.theme.muted;
+    ctx.lineWidth = Math.max(1, s * 0.0022);
+
+    if (f.type === "bird") {
+      // A shallow double-chevron: the classic distant-bird silhouette, two
+      // wingbeats wide.
+      ctx.beginPath();
+      ctx.moveTo(x - w / 2, y);
+      ctx.quadraticCurveTo(x - w / 4, y - w * 0.55, x, y);
+      ctx.quadraticCurveTo(x + w / 4, y - w * 0.55, x + w / 2, y);
+      ctx.stroke();
+    } else if (f.type === "plane") {
+      // A fuselage line with a wide wing near the nose and a smaller tail
+      // near the back, so it reads as a plane rather than a plain cross.
+      ctx.beginPath();
+      ctx.moveTo(x - w / 2, y);
+      ctx.lineTo(x + w / 2, y);
+      ctx.moveTo(x + w * 0.1, y - w * 0.22);
+      ctx.lineTo(x + w * 0.1, y + w * 0.22);
+      ctx.moveTo(x - w * 0.36, y - w * 0.1);
+      ctx.lineTo(x - w * 0.36, y + w * 0.1);
+      ctx.stroke();
+    } else if (f.type === "satellite") {
+      // A small body with a solar panel on each side.
+      ctx.fillRect(x - w * 0.12, y - w * 0.12, w * 0.24, w * 0.24);
+      ctx.fillRect(x - w / 2, y - w * 0.04, w * 0.3, w * 0.08);
+      ctx.fillRect(x + w * 0.2, y - w * 0.04, w * 0.3, w * 0.08);
+    } else if (f.type === "ufo") {
+      // A flat saucer with a shallow dome on top.
+      ctx.beginPath();
+      ctx.ellipse(x, y, w / 2, w * 0.16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x, y - w * 0.1, w * 0.22, w * 0.14, 0, Math.PI, 0);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function draw() {
     let ctx = view.ctx;
     let s = Math.min(view.w, view.h);
@@ -284,6 +398,23 @@
     ctx.clearRect(0, 0, view.w, view.h);
     ctx.fillStyle = A.theme.low;
     ctx.fillRect(0, 0, view.w, view.h);
+
+    // The sky sits behind everything else. Stars only once the flyers reach
+    // the satellite stage, so "far enough up" reads as a change of scene, not
+    // just another sprite.
+    if (layers >= SPACE_FROM) {
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = A.theme.muted;
+      let dots = ensureStars();
+      for (let i = 0; i < dots.length; i++) {
+        ctx.fillRect(dots[i].x * s, dots[i].y * s, Math.max(1, s * 0.0026), Math.max(1, s * 0.0026));
+      }
+      ctx.restore();
+    }
+    if (flyer) {
+      drawFlyer(ctx, s, flyer);
+    }
 
     // The tower, drawn from the floor up. The most recent slab is brightest and
     // the rest fade back, which is what keeps the top edge readable at a glance.
@@ -364,6 +495,7 @@
         top: topSlab() && { x: topSlab().x, w: topSlab().w },
         towerHeight: tower.length,
         scraps: scraps.length,
+        sky: flyer && { type: flyer.type, x: flyer.x },
         config: {
           startWidth: START_W,
           minWidth: MIN_W,
@@ -372,7 +504,7 @@
         },
       };
     },
-    rules: { sliceFor, marginAt, speedAt },
+    rules: { sliceFor, marginAt, speedAt, skyStageFor },
   };
 
   tower.push({ x: 0.5, w: START_W });

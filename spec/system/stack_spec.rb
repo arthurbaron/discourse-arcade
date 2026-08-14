@@ -8,14 +8,15 @@
 #
 # The margin is the design. Fixed, it removes the ceiling entirely: simulated at
 # expert timing it ran into a 5,000 layer guard, the same no-wall problem Penalty
-# had in reverse. Decaying to zero at layer 13 gives an expert a mean of 47 and a
-# best of 60 over 40,000 runs, a casual player 16, and a guaranteed end.
+# had in reverse. Decaying to zero at layer 13 gives an expert a mean of 54 and a
+# best of 71 over 40,000 runs, a casual player 20, and a guaranteed end.
 #
 # It also has to survive a script with no timing error at all, which no margin
 # rule can stop on its own. The discrete sweep does it: once the margin is gone
 # the nearest reachable position is still half a step off centre, so even perfect
-# play sheds a sliver. Simulated, that script dies at layer 92, which is what the
-# plausibility ceiling is set against.
+# play sheds a sliver. Run for real against the live game rather than a model of
+# it, that script dies at layer 161, which is what the plausibility ceiling is
+# set against.
 
 require "rails_helper"
 
@@ -137,7 +138,7 @@ RSpec.describe "Stack", type: :system do
       expect(speeds.each_cons(2).all? { |a, b| b >= a }).to eq(true)
       expect(speeds.first).to be < speeds[3]
       # Capped, or it would eventually outrun a frame and teleport.
-      expect(speeds.last).to be_within(0.0001).of(0.03)
+      expect(speeds.last).to be_within(0.0001).of(0.024)
     end
 
     it "slides back and forth inside the board rather than wrapping" do
@@ -155,6 +156,25 @@ RSpec.describe "Stack", type: :system do
       deltas = seen.each_cons(2).map { |a, b| b - a }
       expect(deltas.any?(&:positive?)).to eq(true)
       expect(deltas.any?(&:negative?)).to eq(true)
+    end
+  end
+
+  describe "the sky" do
+    # Purely decorative, but which milestone is showing is still a rule, not a
+    # visual accident, so it gets the same treatment as everything else here.
+    def sky_type(layer)
+      page.evaluate_script("window.Stack.rules.skyStageFor(#{layer}).type")
+    end
+
+    it "moves through bird, plane, satellite and ufo as the tower climbs" do
+      expect(sky_type(0)).to eq("bird")
+      expect(sky_type(13)).to eq("bird")
+      expect(sky_type(14)).to eq("plane")
+      expect(sky_type(33)).to eq("plane")
+      expect(sky_type(34)).to eq("satellite")
+      expect(sky_type(58)).to eq("satellite")
+      expect(sky_type(59)).to eq("ufo")
+      expect(sky_type(5000)).to eq("ufo")
     end
   end
 

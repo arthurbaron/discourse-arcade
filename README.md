@@ -636,8 +636,8 @@ is joyless. But simulated with a fixed 14%, an expert-level player ran straight
 into a 5,000 layer runaway guard: unbounded, and unlike Darts there is no
 natural cap to fall back on. So the margin shrinks with height and reaches zero.
 Forgiving while you learn, unforgiving once you are good, and the run always
-ends. Over 40,000 simulated runs per skill level: an expert averages 47 layers
-with a best of 60, a decent player 29, a casual one 16. That spread is what
+ends. Over 40,000 simulated runs per skill level: an expert averages 54 layers
+with a best of 71, a decent player 34, a casual one 20. That spread is what
 makes the leaderboard worth climbing.
 
 The opening was tuned twice, and the second pass came from playing it. At 14%
@@ -654,10 +654,12 @@ That still leaves a script with no timing error at all, which no margin rule can
 touch. It stops itself, and this is the part worth remembering: the slab moves
 in discrete steps, so the positions it can occupy form a grid, and once the
 margin is gone the closest reachable position is still half a step off centre.
-A perfect script therefore sheds a sliver every layer too and dies at layer 92.
-Measured rather than hoped for, and `max_plausible_score` is set at 150 against
-that number: clear of the bot ceiling, and far enough above a human best of 60
-that no real run is ever rejected.
+A perfect script therefore sheds a sliver every layer too. That number has to be
+measured against the real game, not a hand-derived model of it: an earlier
+estimate said 92, and running an actual tap-bot against the live page instead
+said 147, just three layers under `max_plausible_score` at the time. Fixed
+alongside the speed change below; the bot now dies at layer 161 and the ceiling
+is set at 220 to stay clear of it without ever rejecting a human.
 
 The tower starts on the floor of the board and genuinely grows upward; the camera
 only takes over once the top reaches the action line, about fifteen layers in,
@@ -666,6 +668,10 @@ base rather than the top is what makes that work: during the growth phase the
 slabs already placed do not move at all. The first version placed the top at a
 fixed height from layer one, which read as a strip already floating mid-board
 rather than a tower rising.
+
+The sweep was slowed to 80% of its original speed on request, easier to read at
+a small cost in challenge, and the numbers above already reflect it. Nothing
+about the margin schedule changed, only how fast the slab covers the board.
 
 `min_run_seconds` is 1, deliberately low. One good drop is one point and can
 happen inside a second, and guessing high on that field is what once told
