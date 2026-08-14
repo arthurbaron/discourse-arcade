@@ -1,4 +1,5 @@
 import { LinkTo } from "@ember/routing";
+import icon from "discourse/ui-kit/helpers/d-icon";
 
 export default <template>
   <div class="arcade-index">
@@ -56,6 +57,17 @@ export default <template>
       </div>
     {{else}}
       <p class="arcade-empty">No games have been added yet.</p>
+    {{/if}}
+
+    {{! Last in the DOM on purpose. On a phone that is exactly where it belongs,
+    at the foot of the page, and on a desktop one absolute rule lifts it to the
+    top right beside the heading. Rendering it twice and hiding one copy would
+    put the same link in the page twice for anything reading the markup. }}
+    {{#if @controller.isAdmin}}
+      <LinkTo @route="arcade.stats" class="arcade-stats-link">
+        {{icon "chart-bar"}}
+        Statistics
+      </LinkTo>
     {{/if}}
   </div>
 </template>

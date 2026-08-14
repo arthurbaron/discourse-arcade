@@ -407,6 +407,223 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Admin statistics ──────────────────────────────────── */
+
+/* The stats link is the last child of the index but sits top right on a desktop,
+   so the index has to be the thing it is positioned against. */
+.arcade-index {
+  position: relative;
+}
+
+.arcade-stats-link {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.4em 0.75em;
+  border: 1px solid var(--primary-low);
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--primary-medium);
+}
+
+.arcade-stats-link:hover {
+  border-color: var(--primary-medium);
+  color: var(--primary);
+}
+
+.arcade-stats-link .d-icon {
+  width: 0.9em;
+  height: 0.9em;
+}
+
+.arcade-stats-back {
+  display: inline-block;
+  margin-top: 2em;
+  font-size: 0.85em;
+}
+
+/* Four numbers that answer "is anyone actually playing", so they get the most
+   weight on the page and nothing else competes with them. */
+.arcade-stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75em;
+  margin-bottom: 2em;
+}
+
+.arcade-stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  padding: 0.9em 1em;
+  border: 1px solid var(--primary-low);
+  border-radius: 6px;
+}
+
+.arcade-tile-value {
+  font-size: 1.7em;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.arcade-tile-label {
+  font-size: 0.8em;
+  color: var(--primary-medium);
+}
+
+.arcade-stat-block {
+  margin-bottom: 2.25em;
+}
+
+.arcade-stat-block h2 {
+  margin: 0 0 0.75em;
+  font-size: 1.05em;
+}
+
+.arcade-stat-note,
+.arcade-stat-quiet {
+  color: var(--primary-medium);
+}
+
+.arcade-stat-note {
+  margin: -0.4em 0 0.9em;
+  font-size: 0.85em;
+}
+
+/* A seven column table does not fit a phone, and squeezing it would cost the
+   numbers their alignment, so it scrolls inside its own box instead. */
+.arcade-stat-scroll {
+  overflow-x: auto;
+}
+
+.arcade-stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.arcade-stat-table th,
+.arcade-stat-table td {
+  padding: 0.5em 0.7em;
+  text-align: left;
+  border-bottom: 1px solid var(--primary-very-low);
+  white-space: nowrap;
+}
+
+.arcade-stat-table th {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--primary-medium);
+}
+
+.arcade-stat-table .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A game that is switched off still has a history worth reading, so it stays in
+   the table and only loses contrast. */
+.arcade-stat-table tr.is-off td {
+  color: var(--primary-medium);
+}
+
+.arcade-stat-off {
+  margin-left: 0.4em;
+  padding: 0.05em 0.35em;
+  border: 1px solid var(--primary-low);
+  border-radius: 3px;
+  font-size: 0.75em;
+  text-transform: uppercase;
+}
+
+.arcade-trophy-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.arcade-trophy-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--primary-very-low);
+}
+
+.arcade-trophy-name {
+  font-weight: 600;
+}
+
+/* The games are the interesting part but also the longest, so they take the
+   slack and truncate rather than wrapping the row onto two lines. */
+.arcade-trophy-games {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85em;
+  color: var(--primary-medium);
+}
+
+.arcade-trophy-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary-medium);
+}
+
+.arcade-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35em;
+}
+
+.arcade-bar-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+}
+
+/* The baseline is on the track rather than the bar, so a day with nothing played
+   still reads as a day that existed instead of vanishing. */
+.arcade-bar-track {
+  width: 100%;
+  height: 90px;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--primary-low);
+}
+
+.arcade-bar {
+  width: 100%;
+  background: var(--tertiary);
+  border-radius: 3px 3px 0 0;
+  opacity: 0.75;
+}
+
+.arcade-bar.is-peak {
+  opacity: 1;
+}
+
+.arcade-bar-value {
+  font-size: 0.75em;
+  font-variant-numeric: tabular-nums;
+}
+
+.arcade-bar-label {
+  font-size: 0.7em;
+  color: var(--primary-medium);
+}
+
 /* ── Mobile ────────────────────────────────────────────── */
 
 @media (max-width: 767px) {
@@ -453,5 +670,34 @@
     max-width: none;
     justify-content: space-between;
     gap: 1em;
+  }
+
+  /* Back into the flow, which puts it at the foot of the page where it was
+     asked for: on a phone the games come first and the admin link is something
+     you go looking for, not something that should sit beside the heading. */
+  .arcade-stats-link {
+    position: static;
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5em;
+  }
+
+  /* Four tiles across a phone leaves each number too narrow to read. */
+  .arcade-stat-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .arcade-tile-value {
+    font-size: 1.4em;
+  }
+
+  /* Fourteen bars plus their labels do not fit, so the fortnight scrolls
+     sideways while the seven weekdays still fit across. */
+  .arcade-bars {
+    overflow-x: auto;
+  }
+
+  .arcade-bar-col {
+    flex: 0 0 1.9em;
   }
 }

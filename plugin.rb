@@ -16,6 +16,9 @@ register_asset "stylesheets/admin/arcade-admin.css", :admin
 # poster's name.
 register_svg_icon "star"
 register_svg_icon "trophy"
+# The admin stats link. Registering it is what puts it in the icon sprite at
+# all; see the note on "gamepad" below for what happens when one is missing.
+register_svg_icon "chart-bar"
 
 # Keep this even though nothing in this plugin renders it. The heading moved to a
 # real emoji, so it looked unused and got removed once, which silently emptied
@@ -36,6 +39,7 @@ after_initialize do
     "app/services/arcade_score_submission",
     "app/services/arcade_record_holders",
     "app/services/arcade_assets_version",
+    "app/services/arcade_stats",
     "app/controllers/arcade_page_controller",
     "app/controllers/arcade_controller",
     "app/controllers/admin_arcade_controller",
@@ -59,9 +63,13 @@ after_initialize do
 
   # Prepend so these win before Discourse's catch-all route.
   Discourse::Application.routes.prepend do
-    # Ember app shell. Both paths boot the same SPA.
+    # Ember app shell. All of these boot the same SPA. /arcade/stats is an
+    # admin-only screen, but it is named here like any other so a hard load or a
+    # pasted URL reaches the app at all; the guarding is the route's job on the
+    # client and the admin controller's job on the server.
     get "/arcade" => "arcade_page#index"
     get "/arcade/g/:slug" => "arcade_page#index"
+    get "/arcade/stats" => "arcade_page#index"
 
     # JSON API. Namespaced under /api so it can never collide with a game slug.
     get "/arcade/api/games" => "arcade#index"
@@ -75,6 +83,7 @@ after_initialize do
     # AdminController already demands an admin, so no extra constraint.
     get "/arcade/api/admin/games" => "admin_arcade#index"
     put "/arcade/api/admin/games/:id" => "admin_arcade#update"
+    get "/arcade/api/admin/stats" => "admin_arcade#stats"
 
     # And the page itself. Rails only serves /admin/plugins/:plugin_id and
     # /settings, so a child route of the admin SPA works when clicked but 404s on

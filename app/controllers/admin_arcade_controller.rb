@@ -19,6 +19,14 @@ class AdminArcadeController < Admin::AdminController
     render json: { game: serialize_game(game) }
   end
 
+  # GET /arcade/api/admin/stats
+  #
+  # Lives on the admin controller rather than the public one purely so the admin
+  # check comes from Admin::AdminController and cannot be forgotten here.
+  def stats
+    render json: ArcadeStats.call(viewer: current_user)
+  end
+
   private
 
   def serialize_game(game)

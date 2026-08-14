@@ -141,6 +141,39 @@ RSpec.describe AdminArcadeController do
     end
   end
 
+  describe "#stats" do
+    it "answers an admin" do
+      sign_in(admin)
+      get "/arcade/api/admin/stats.json"
+
+      expect(response.status).to eq(200)
+      body = response.parsed_body
+      expect(body["totals"]).to be_present
+      # Every game, on or off, so a zero shows up as a zero.
+      expect(body["games"].map { |g| g["slug"] }).to eq(%w[alpha beta])
+      expect(body["by_weekday"].length).to eq(7)
+    end
+
+    # The link to this screen is hidden from members and the client route turns
+    # them around, but neither of those is a guard. This is the guard.
+    it "refuses a moderator" do
+      sign_in(moderator)
+      get "/arcade/api/admin/stats.json"
+      expect(response.status).to eq(403)
+    end
+
+    it "refuses a normal user" do
+      sign_in(user)
+      get "/arcade/api/admin/stats.json"
+      expect(response.status).to eq(403)
+    end
+
+    it "refuses anonymous" do
+      get "/arcade/api/admin/stats.json"
+      expect(response.status).to eq(403)
+    end
+  end
+
   describe "a run already in progress" do
     # Switching a game off mid-run must not swallow the score of someone already
     # playing. It works because submission finds the game through the run token
