@@ -8,14 +8,20 @@
 #
 # The margin is the design. Fixed, it removes the ceiling entirely: simulated at
 # expert timing it ran into a 5,000 layer guard, the same no-wall problem Penalty
-# had in reverse. Decaying to zero at layer 13 gives an expert a mean of 54 and a
-# best of 71 over 40,000 runs, a casual player 20, and a guaranteed end.
+# had in reverse. Decaying to zero at layer 13 gives an expert a mean of 63 and a
+# best of 79, a casual player 21, and a guaranteed end.
+#
+# Two further rules exist only because the endgame was reported as unfair, and
+# both reports were right: the floor on what survives a drop is absolute, so a
+# high floor ends runs that landed most of the slab on target, and the step has
+# to be capped against the slab, or one frame of hesitation grows wider than the
+# target and the last layers are a coin toss. Both are tested below.
 #
 # It also has to survive a script with no timing error at all, which no margin
 # rule can stop on its own. The discrete sweep does it: once the margin is gone
 # the nearest reachable position is still half a step off centre, so even perfect
 # play sheds a sliver. Run for real against the live game rather than a model of
-# it, that script dies at layer 161, which is what the plausibility ceiling is
+# it, that script dies at layer 192, which is what the plausibility ceiling is
 # set against.
 
 require "rails_helper"
@@ -86,6 +92,24 @@ RSpec.describe "Stack", type: :system do
       result = slice(0.9, 0.5, 0.4, 30)
       expect(result["width"]).to eq(0)
     end
+
+    # Reported from play, and the first of the two causes: the run ended while a
+    # good part of the slab was still landing on the one below. Game over is an
+    # absolute floor on what survives, so near that floor it stops judging the
+    # drop and starts judging the leftover. At the old floor of 0.035, keeping
+    # 85% of a 0.04 slab left 0.034 and ended the run.
+    it "keeps a slab that lands most of itself on the one below" do
+      min_width = state["config"]["minWidth"]
+
+      # 0.04 wide, missing by 0.006: 85% of the slab lands on target.
+      result = slice(0.506, 0.5, 0.04, 30)
+      expect(result["width"] / 0.04).to be > 0.8
+      expect(result["width"]).to be > min_width
+
+      # The floor is low enough that hitting it means a genuine sliver, not a
+      # respectable drop on an already-narrow slab.
+      expect(min_width).to be <= 0.015
+    end
   end
 
   describe "the forgiveness margin" do
@@ -141,6 +165,32 @@ RSpec.describe "Stack", type: :system do
       expect(speeds.last).to be_within(0.0001).of(0.024)
     end
 
+    # Reported from play: a small slab felt like it was called a miss too early,
+    # and never got to be genuinely small. Two causes, and this is the second of
+    # them. A player's error is a number of frames, so the distance missed is
+    # frames x step; letting the step grow past the slab makes one frame of
+    # hesitation wider than the target, which is a coin toss, not timing.
+    it "caps the step against the slab, so a narrow slab stays playable" do
+      wide = page.evaluate_script("window.Stack.rules.speedAt(40, 0.5)")
+      narrow = page.evaluate_script("window.Stack.rules.speedAt(40, 0.03)")
+
+      # Same layer, so without the cap these would be identical.
+      expect(narrow).to be < wide
+      expect(narrow).to be_within(0.0001).of(0.03 * 0.2)
+
+      # A single frame never costs more than a fifth of the slab, at any height.
+      [[0, 0.6], [20, 0.2], [40, 0.05], [90, 0.02]].each do |layer, width|
+        expect(page.evaluate_script("window.Stack.rules.speedAt(#{layer}, #{width})")).to be <=
+          width * 0.2 + 0.0001
+      end
+
+      # Called without a width it still reports the plain height-driven sweep,
+      # which is what the speed curve above is about.
+      expect(page.evaluate_script("window.Stack.rules.speedAt(40, 0.5)")).to eq(
+        page.evaluate_script("window.Stack.rules.speedAt(40)"),
+      )
+    end
+
     it "slides back and forth inside the board rather than wrapping" do
       seen = Array.new(40) do
         value = state["slab"]["x"]
@@ -193,8 +243,10 @@ RSpec.describe "Stack", type: :system do
             return;
           }
           if (!s.slab || !s.top) { return; }
-          var speed = window.Stack.rules.speedAt(s.layers);
-          if (Math.abs(s.slab.x - s.top.x) <= speed / 2) {
+          // s.step, not speedAt(layers): once the slab is narrow the step is
+          // capped against its width, and judging the drop by the uncapped
+          // speed would tap from far too wide a window.
+          if (Math.abs(s.slab.x - s.top.x) <= s.step / 2) {
             document.getElementById("stage").dispatchEvent(new PointerEvent("pointerdown", {
               clientX: 10, clientY: 10, pointerId: 1, pointerType: "touch",
               bubbles: true, cancelable: true

@@ -636,8 +636,8 @@ is joyless. But simulated with a fixed 14%, an expert-level player ran straight
 into a 5,000 layer runaway guard: unbounded, and unlike Darts there is no
 natural cap to fall back on. So the margin shrinks with height and reaches zero.
 Forgiving while you learn, unforgiving once you are good, and the run always
-ends. Over 40,000 simulated runs per skill level: an expert averages 54 layers
-with a best of 71, a decent player 34, a casual one 20. That spread is what
+ends. Over 20,000 simulated runs per skill level: an expert averages 63 layers
+with a best of 79, a decent player 38, a casual one 21. That spread is what
 makes the leaderboard worth climbing.
 
 The opening was tuned twice, and the second pass came from playing it. At 14%
@@ -657,9 +657,26 @@ margin is gone the closest reachable position is still half a step off centre.
 A perfect script therefore sheds a sliver every layer too. That number has to be
 measured against the real game, not a hand-derived model of it: an earlier
 estimate said 92, and running an actual tap-bot against the live page instead
-said 147, just three layers under `max_plausible_score` at the time. Fixed
-alongside the speed change below; the bot now dies at layer 161 and the ceiling
-is set at 220 to stay clear of it without ever rejecting a human.
+said 147, just three layers under `max_plausible_score` at the time. The bot now
+dies at layer 192, and the ceiling sits at 300. The headroom is deliberate,
+because that figure moves every time the sweep is retuned, and three layers of
+slack is no slack at all.
+
+**The endgame was reported as unfair twice, and both reports were right.** A
+small slab felt like it was called a miss too early, and never got to be
+genuinely small. Two independent causes. Game over is an *absolute* floor on what
+survives a drop, so near that floor it stops judging the drop and starts judging
+the leftover: at the old floor of 0.035, landing 85% of a 0.04 slab on the one
+below still ended the run. Separately, a player's timing error is a number of
+*frames*, so the distance they miss by is frames times step, and a step that
+keeps growing with height while the slab shrinks eventually makes one frame of
+hesitation wider than the whole target. By layer 50 a single frame covered 65% of
+the slab, which is a coin toss and not a test of timing. Between them the slab
+could never actually become small, because the run ended first. So the floor
+dropped to 0.012, and the step is capped at a fifth of the slab, which only binds
+once the slab is under about a tenth of the board and leaves everything before
+that untouched. A typical expert run now ends holding a slab 0.013 wide: a
+sliver, as it should be.
 
 The tower starts on the floor of the board and genuinely grows upward; the camera
 only takes over once the top reaches the action line, about fifteen layers in,

@@ -16,19 +16,29 @@
  * So the margin shrinks with height and reaches zero at layer 13. Forgiving
  * while you learn, unforgiving once you are good, and the run always ends.
  * The sweep speed was slowed to 80% of its original pace on request, which
- * gives everyone a little more room to read the board: measured over 40,000
- * simulated runs per skill level, an expert now averages 54 layers with a
- * best of 71, a decent player 34, a casual one 20.
+ * gives everyone a little more room to read the board: measured over 20,000
+ * simulated runs per skill level, an expert now averages 63 layers with a
+ * best of 79, a decent player 38, a casual one 21.
+ *
+ * The endgame was reported as unfair, twice over, and both reports were right.
+ * Game over is an absolute floor on what survives a drop, so near that floor it
+ * stops judging the drop and starts judging the leftover: at the old floor of
+ * 0.035, landing 85% of a 0.04 slab on the one below still ended the run. And
+ * because a player's error is a number of frames, the distance they miss by is
+ * frames x step, so a step that keeps growing while the slab shrinks eventually
+ * makes one frame of hesitation wider than the whole target. Together those
+ * meant the slab could never actually become small: the run ended first. Hence
+ * a much lower floor, and a step capped at a share of the slab, which only
+ * binds once the slab is under about a tenth of the board.
  *
  * That still leaves a script with no timing error at all, which no amount of
  * margin decay would stop. It stops itself: the slab moves in discrete steps,
  * so the positions it can occupy form a grid, and once the margin is gone the
  * closest reachable position is still half a step off centre. A perfect
  * tap-bot, driven against the real game rather than a model of it, dies at
- * layer 161. Measured directly rather than assumed: an earlier hand-derived
- * estimate of 92 for the pre-slowdown speed turned out to be wrong when
- * actually run, and the true figure (147) left only 3 layers of headroom
- * under the plausibility ceiling below. Worth remembering that a model of the
+ * layer 192. Measured directly rather than assumed: an earlier hand-derived
+ * estimate of 92 turned out to be wrong when actually run, and the true figure
+ * left only 3 layers of headroom under the plausibility ceiling. A model of the
  * game is not the game.
  */
 (function () {
@@ -40,7 +50,14 @@
 
   // Everything is a fraction of the square board.
   let START_W = 0.62;
-  let MIN_W = 0.035;
+
+  // The run ends when less than this survives a drop. It was 0.035, and that
+  // was reported from play as ending the run while a good part of the slab was
+  // still landing on the one below, which the arithmetic bears out: at 0.04
+  // wide, keeping 85% of the slab left 0.034 and died. An absolute floor judges
+  // the leftover, not the drop, so near the floor it fails honest play. Low
+  // enough now that reaching it means the slab really is a sliver.
+  let MIN_W = 0.012;
   let SLAB_H = 0.042;
 
   // The slab sweeps the full board and speeds up as you climb. Slowed to 80%
@@ -50,6 +67,15 @@
   let SPEED_START = 0.0088;
   let SPEED_PER_LAYER = 0.00028;
   let SPEED_MAX = 0.024;
+
+  // A player's timing error is measured in frames, so the distance they miss by
+  // is frames x step. Left alone, the step keeps growing with height while the
+  // slab shrinks, until one frame of hesitation is wider than the whole slab and
+  // the endgame is a coin toss rather than a test of timing. Capping the step at
+  // a share of the slab keeps a single frame's error proportional to the target,
+  // so a small slab is hard but still playable. It only binds once the slab is
+  // under about a tenth of the board, so everything before that is untouched.
+  let STEP_CAP = 0.2;
 
   // The forgiveness margin, as a fraction of the current slab's width. Started
   // at 14% decaying 0.006, and that was reported from play as too soft: a
@@ -108,8 +134,14 @@
   let slide = 0; // camera easing after a placement
   let ending = 0;
 
-  function speedAt(layer) {
-    return Math.min(SPEED_MAX, SPEED_START + layer * SPEED_PER_LAYER);
+  // Without a width this is the plain height-driven sweep speed. With one it is
+  // the step actually taken, which is what a player's error is multiplied by.
+  function speedAt(layer, width) {
+    let speed = Math.min(SPEED_MAX, SPEED_START + layer * SPEED_PER_LAYER);
+    if (width === undefined) {
+      return speed;
+    }
+    return Math.min(speed, width * STEP_CAP);
   }
 
   // Zero from layer 13 on, so past that even a flawless human drop shaves
@@ -287,7 +319,7 @@
       return;
     }
 
-    let speed = speedAt(layers);
+    let speed = speedAt(layers, slab.w);
     slab.x += slab.dir * speed;
 
     // It bounces off the edges rather than wrapping, so the slab is always
@@ -496,11 +528,16 @@
         towerHeight: tower.length,
         scraps: scraps.length,
         sky: flyer && { type: flyer.type, x: flyer.x },
+        // The step actually being taken this layer, which is the height-driven
+        // speed capped against the slab. Reported rather than left to be
+        // recomputed, because anything judging a drop needs the real number.
+        step: slab && speedAt(layers, slab.w),
         config: {
           startWidth: START_W,
           minWidth: MIN_W,
           marginStart: MARGIN_START,
           marginDecay: MARGIN_DECAY,
+          stepCap: STEP_CAP,
         },
       };
     },

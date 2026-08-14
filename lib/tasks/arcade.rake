@@ -163,12 +163,13 @@ ARCADE_GAMES = [
     thumbnail: "stack.svg",
     score_direction: "high",
     score_unit: "layers",
-    # Simulated: an expert averages 54 layers with a best of 71 over 40,000
-    # runs. A perfect tap-bot, run against the real game rather than guessed
-    # at, dies at layer 161, because once the forgiveness margin is gone the
-    # discrete sweep cannot land exactly on centre. 220 sits clear of that
-    # without ever rejecting a human.
-    max_plausible_score: 220,
+    # Simulated: an expert averages 63 layers with a best of 79. A perfect
+    # tap-bot, run against the real game rather than guessed at, dies at layer
+    # 192, because once the forgiveness margin is gone the discrete sweep cannot
+    # land exactly on centre. 300 sits clear of that. The headroom is deliberate:
+    # this was once set 3 layers above a misremembered bot figure, which is no
+    # margin at all for a number that moves whenever the sweep is retuned.
+    max_plausible_score: 300,
     # One good drop is one point and can happen inside a second, so this stays
     # low. Guessing high here is what once told people their real scores were
     # fake.
