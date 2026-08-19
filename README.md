@@ -610,18 +610,22 @@ aiming at the fat single twenty (16.7 per dart) than at the treble (13.1),
 while a skilled one flips that (28.7 at the treble, 24% trebles). Risk it or
 bank it, and the board itself asks the question.
 
-Sweep speed is the whole difficulty and was chosen from that simulation: 60
-steps edge to edge. Skilled runs average about 432 of the 900 ceiling and the
-best run in 60,000 simulated was 740, so a perfect card stays structurally out
-of reach, the same no-wall rule every game here follows. A small landing
-wobble (0.015 of the board radius, a disc so it cannot favour an axis) keeps
-two identical taps from being two identical darts.
+Sweep speed is the whole difficulty and was chosen from a simulation: 60 steps
+edge to edge, which said skilled runs average about 432 of the 900 and the best
+of 60,000 was 740, so a perfect card was structurally out of reach. **That
+simulation was wrong, and players proved it.** It modelled a thumb with a random
+timing error. The real game rewards something else entirely: the sweep restarts
+at the same edge at the same speed for every dart, so the rhythm can be
+memorised, and once it is there is no error left to model. Driven against the
+real page, perfect timing throws fifteen trebles out of fifteen, every single
+time. A small landing wobble (0.015 of the board radius, a disc so it cannot
+favour an axis) cannot save it, because the best reachable stop sits further
+inside the treble than the wobble can reach.
 
 Fifteen darts are five real visits of three, and three treble twenties in one
 visit is a 180: a huge blinking shout across the board and a +50 bonus. Visits
 are aligned exactly as at the oche, so three trebles spanning a visit boundary
-score their points and nothing more. The ceiling moves to 1,150 with all five
-bonuses in, still unreachable for the same reason 900 was.
+score their points and nothing more. That puts the ceiling at 1,150.
 
 That alignment rule shipped invisible, and it was reported from play as a bug:
 three trebles in a row paid nothing, because they crossed a boundary. The rule
@@ -647,6 +651,60 @@ the tap, which reads the frame drawn *before* the phase changed, and reported a
 pass for the broken code. The check now samples state and pixels inside the
 same animation frame.
 
+## Darts had a wall at 1,150, and players hit it before any test did
+
+Reported from the forum, in players' own words: "if you don't hit 5 treble 20s
+in the first 6 it's not worth finishing", "you need 4 maximums", and a request
+for a tie-breaker "because it definitely might happen that someone hits all".
+The record stood at 980. All of that is one problem: 1,150 was not a record, it
+was a wall that everyone who practised would eventually stand on, ranked by who
+got there first.
+
+Two fixes were tried and measured before the one that shipped, and both failed
+in ways worth keeping:
+
+**A faster sweep is not reliably harder.** Whether a treble can be hit with
+certainty depends on whether one of the sweep's reachable stops lands far enough
+inside the ring for the wobble to be harmless, and that is an alignment
+coincidence rather than a difficulty. Measured: 60 steps leaves 0.0161 of room
+and 30 steps leaves exactly the same, while 36 and 40 leave none at all. A
+difficulty ladder built on that would jump between impossible and trivial.
+
+**Naming a harder target does not work either.** The guess was that the 20 is
+easy because it sits straight up and only needs one axis to cooperate, while an
+off-axis treble needs both at once. Checked against every sector: all twenty
+trebles can be hit with certainty. The grid is 61 stops per axis, nearly 4,000
+reachable points, far too fine for a board with sectors this size.
+
+Which leaves one honest conclusion: with a grid that fine, determinism cannot
+produce difficulty. Only variation can. But *which* variation matters enormously.
+Randomising the landing makes a correct tap fail sometimes, and then the
+leaderboard measures how many runs someone is willing to start: at 70% per dart,
+1,150 still comes up in half of all runs. Randomising the *rhythm* instead means
+the sweep has to be watched rather than recited, which is still skill, just a
+different one.
+
+So the card of fifteen is left bit-for-bit alone, and **every score already on
+the board stays valid**, because all of them are under the threshold. Reach 1,000
+on that card and sudden death opens: you keep throwing, a visit at a time, for as
+long as every visit is a maximum. Extra visits start the sweep somewhere random
+and coarsen its grid by four steps a visit down to a floor of sixteen. The random
+start is what stops the rhythm being recited, and it is also what makes the
+coarsening *monotonic*: averaged over a random start, the chance a stop lands in
+the ring is the ring width over the step size, and the alignment coincidence that
+sank the first attempt washes out.
+
+Measured against the real page, fourteen runs by a tracker with perfect
+reactions: median 1,750, best 2,440, and it always ended on its own. Surviving
+ten extra visits is about two chances in a hundred billion, so
+`max_plausible_score` sits at 10,000 rather than snug against 3,620.
+
+One thing this deliberately does not fix. The complaint that a bad start makes a
+run not worth finishing gets slightly worse, because the bar to compete is now a
+perfect card. That is only fixable by rebalancing all fifteen darts, which would
+make every existing score incomparable, and that is a decision about wiping the
+leaderboard rather than a bug to fix.
+
 `darts_spec.rb` walks the geometry point by point (bull, rings, boundaries at
 exactly nine degrees, the full twenty-sector order) and pins the input rules:
 a tap locks one axis while the other keeps sweeping, the dart lands within the
@@ -655,11 +713,12 @@ ignored so a double tap cannot burn a dart, and the total is exactly the sum
 of the fifteen hits plus fifty per 180. The 180 spec is worth a note: the
 sweep's positions form a fixed grid, and one grid position sits close enough
 to the treble twenty's centre that a script watching `state().sweep` and
-tapping on the right step hits T20 every time, wobble included. That is how
-the spec forces a 180 on demand, and it is also a live demonstration of the
-documented cheat ceiling: scripts can do what thumbs cannot, which is why an
-implausibly perfect card is treated as self-incriminating rather than as
-impossible.
+tapping on the right step hits T20 every time, wobble included. That is how the
+spec forces a 180 on demand. It was written up here as a demonstration that
+"scripts can do what thumbs cannot", and that reading was wrong: a thumb that
+learns the rhythm does exactly the same thing, which is how the wall above got
+built. The spec for sudden death drives that same perfect card on purpose, since
+the only reason any of it is needed is that a perfect card is achievable.
 
 ## Stack, and a margin that has to run out
 

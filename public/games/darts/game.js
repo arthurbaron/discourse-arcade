@@ -54,6 +54,38 @@
   let BONUS_180 = 50;
   let CELEBRATION_STEPS = 110;
 
+  // Reported by players: the top of the board was converging on the maximum and
+  // a tie-breaker was being asked for. Measured against the real game rather
+  // than modelled, a player who has learned the rhythm throws fifteen trebles
+  // out of fifteen every single time, so 1150 was never a record. It was a wall
+  // that everyone who practised would eventually stand on, ranked by who got
+  // there first.
+  //
+  // The cause is that the sweep is recitable. It restarts at the same edge at
+  // the same speed for every dart, and the grid of stops it can be frozen on is
+  // fine enough (61 per axis) that every treble on the board, not just the
+  // twenty, can be hit with certainty. No choice of target fixes that and
+  // neither does a faster sweep, both of which were tried and measured first.
+  //
+  // So the card of fifteen is left exactly as it is. Every score already on the
+  // board was thrown under the rules that still apply, and nothing needs
+  // resetting, because every one of them is below the threshold. Reach it on
+  // that card and you keep throwing, a visit at a time, for as long as every
+  // visit is a maximum.
+  let SUDDEN_DEATH_FROM = 1000;
+
+  // Extra visits get a random starting point and a coarser grid, and both parts
+  // are load-bearing. The random start is what stops the rhythm being recited:
+  // the sweep has to be watched rather than counted. It is also what makes a
+  // coarser grid reliably harder, which is not true on its own. Measured on the
+  // fixed sweep, 30 steps leaves exactly as much room as 60 while 36 and 40
+  // leave none at all, because it is an alignment coincidence rather than a
+  // difficulty. Average that coincidence over a random start and what is left
+  // is the ring width over the step size, which falls off smoothly.
+  let EXTRA_STEPS_BASE = 46;
+  let EXTRA_STEPS_PER_VISIT = 4;
+  let EXTRA_STEPS_MIN = 16;
+
   // Where the board sits on the stage: centre and radius in stage fractions.
   let CENTRE_X = 0.5;
   let CENTRE_Y = 0.53;
@@ -82,6 +114,11 @@
   let hits = [];
   let bonuses180 = 0;
   let celebrating = false;
+
+  // Sudden death: false for the whole card of fifteen, then true if the card was
+  // good enough. extraVisit counts the visit being thrown, 1-based.
+  let suddenDeath = false;
+  let extraVisit = 0;
 
   function scoreAt(x, y) {
     let hit = hitAt(x, y);
@@ -135,6 +172,69 @@
     return BONUS_180;
   }
 
+  // How coarse the grid of reachable stops is for a given extra visit. Fewer
+  // steps edge to edge means a bigger jump per frame, so fewer of them land
+  // inside the treble ring at all.
+  function extraSweepStepsAt(extra) {
+    return Math.max(
+      EXTRA_STEPS_MIN,
+      EXTRA_STEPS_BASE - Math.max(0, extra - 1) * EXTRA_STEPS_PER_VISIT
+    );
+  }
+
+  function sweepStepsNow() {
+    return suddenDeath ? extraSweepStepsAt(extraVisit) : SWEEP_STEPS;
+  }
+
+  // Every dart on the card starts from the same edge, which is what makes the
+  // card learnable and is deliberately left alone. Extra visits do not.
+  function resetSweep() {
+    if (suddenDeath) {
+      sweep = -RANGE + Math.random() * 2 * RANGE;
+      sweepDir = Math.random() < 0.5 ? -1 : 1;
+    } else {
+      sweep = -RANGE;
+      sweepDir = 1;
+    }
+  }
+
+  function extraDartsThrown() {
+    return Math.max(0, dartsThrown - TOTAL_DARTS);
+  }
+
+  // Called once a dart's result pause is over: is the run finished?
+  function runIsOver() {
+    if (dartsThrown < TOTAL_DARTS) {
+      return false;
+    }
+
+    if (!suddenDeath) {
+      if (total < SUDDEN_DEATH_FROM) {
+        return true;
+      }
+      suddenDeath = true;
+      extraVisit = 1;
+      return false;
+    }
+
+    // Mid-visit, so there is always another dart to throw.
+    if (extraDartsThrown() % VISIT_SIZE !== 0) {
+      return false;
+    }
+
+    // A completed extra visit continues the run only if it was a maximum. Reuses
+    // the same rule the bonus uses, so the two can never disagree.
+    let visit = hits.slice(-VISIT_SIZE).map(function (h) {
+      return h.points;
+    });
+    if (bonusFor(visit) === 0) {
+      return true;
+    }
+
+    extraVisit++;
+    return false;
+  }
+
   // Which visit is being thrown and how far into it, 1-based. Reported from
   // play as the thing that made the bonus look broken: the rule was right but
   // invisible, so three trebles across a boundary read as a missed payout.
@@ -179,15 +279,18 @@
     let last = lastHit
       ? " · Last " + lastHit.label + (lastHit.points > 0 ? " (" + lastHit.points + ")" : "")
       : "";
+    let where = suddenDeath
+      ? "Sudden death · Visit " + extraVisit
+      : "Visit " + progress.visit + "/" + progress.visits;
     hintEl.textContent =
-      "Visit " + progress.visit + "/" + progress.visits +
+      where +
       " · Dart " + Math.min(progress.thrownInVisit + 1, VISIT_SIZE) + " of " + VISIT_SIZE +
       last;
   }
 
   function finish() {
     alive = false;
-    overEl.textContent = "Game over";
+    overEl.textContent = suddenDeath ? "Sudden death over" : "Game over";
     overEl.classList.add("visible");
     A.submit(total);
   }
@@ -234,8 +337,7 @@
 
     if (phase === "aimX") {
       lockedX = sweep;
-      sweep = -RANGE;
-      sweepDir = 1;
+      resetSweep();
       phase = "aimY";
     } else if (phase === "aimY") {
       lockedY = sweep;
@@ -253,18 +355,17 @@
     if (phase === "result") {
       resultTimer--;
       if (resultTimer <= 0) {
-        if (dartsThrown >= TOTAL_DARTS) {
+          if (runIsOver()) {
           finish();
           return;
         }
-        sweep = -RANGE;
-        sweepDir = 1;
+        resetSweep();
         phase = "aimX";
       }
       return;
     }
 
-    let move = (2 * RANGE) / SWEEP_STEPS;
+    let move = (2 * RANGE) / sweepStepsNow();
     sweep += sweepDir * move;
     if (sweep >= RANGE) {
       sweep = RANGE;
@@ -559,16 +660,30 @@
         visit: visitProgress(dartsThrown),
         visitPoints: currentVisitPoints(),
         maximumLive: maximumIsLive(),
+        suddenDeath,
+        extraVisit,
+        // The step size actually in force, which in sudden death is not the
+        // card's. Anything judging a dart needs the real number.
+        sweepSteps: sweepStepsNow(),
         config: {
           sweepSteps: SWEEP_STEPS,
           range: RANGE,
           wobble: WOBBLE,
           visitSize: VISIT_SIZE,
           bonus180: BONUS_180,
+          suddenDeathFrom: SUDDEN_DEATH_FROM,
         },
       };
     },
-    rules: { scoreAt, hitAt, bonusFor, dartAlpha, visitProgress },
+    rules: {
+      scoreAt,
+      hitAt,
+      bonusFor,
+      dartAlpha,
+      visitProgress,
+      extraSweepSteps: extraSweepStepsAt,
+      suddenDeathFrom: () => SUDDEN_DEATH_FROM,
+    },
   };
 
   updateHint();

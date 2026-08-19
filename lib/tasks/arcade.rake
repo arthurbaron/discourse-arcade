@@ -158,10 +158,22 @@ ARCADE_GAMES = [
     thumbnail: "darts.svg",
     score_direction: "high",
     score_unit: "points",
-    # Fifteen perfect treble twenties plus five 180 bonuses. The sweep makes
-    # that unreachable: the best of 60,000 simulated skilled runs was 740
-    # before bonuses.
-    max_plausible_score: 1_150,
+    # That simulation was wrong, and players proved it. It said the best of
+    # 60,000 skilled runs was 740 of 900 before bonuses, so 1,150 was safely out
+    # of reach. It modelled a player who guesses with a timing error; the real
+    # game rewards a player who learns a fixed rhythm, and once learned there is
+    # no error left. Driven against the real page, perfect timing throws fifteen
+    # trebles out of fifteen, every time. The record reached 980 and 1,150 was
+    # about to become a wall several people stood on.
+    #
+    # Sudden death removes the ceiling: past 1,000 the sweep starts somewhere
+    # random and its grid coarsens each extra visit. Measured over fourteen runs
+    # by a tracker with perfect reactions, that gives a median of 1,750 and a best
+    # of 2,440, and surviving ten extra visits (3,620) is about two chances in a
+    # hundred billion. 10,000 leaves that alone with room to spare, because a
+    # false rejection throws away a real run and this guard is only here to
+    # refuse a tampered client posting an absurd number.
+    max_plausible_score: 10_000,
     min_run_seconds: 5,
     position: 13,
   },

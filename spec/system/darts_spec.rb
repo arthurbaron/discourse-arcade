@@ -11,6 +11,15 @@
 # So these specs also pin that a tap locks one axis while the other keeps
 # sweeping, and that where you lock is where the dart lands, within the small
 # advertised wobble.
+#
+# The card of fifteen is recitable on purpose and that cost the leaderboard its
+# top: the sweep restarts at the same edge at the same speed every dart, so a
+# player who learns the rhythm throws fifteen trebles out of fifteen, every
+# time. 1150 was a wall, not a record. Sudden death is the answer, and the two
+# properties it turns on are tested here: the card itself must stay bit-for-bit
+# the game it was, or every score already on the board becomes incomparable, and
+# the extra visits must get harder in a way that actually falls off, which a
+# faster sweep alone does not do.
 
 require "rails_helper"
 
@@ -335,11 +344,126 @@ RSpec.describe "Darts", type: :system do
       end
 
       final = state
+      # Blind taps cannot come near the sudden-death threshold, so this still
+      # ends at fifteen. That is the point: only a near-perfect card continues.
+      expect(final["total"]).to be < 1000
       expect(final["dartsThrown"]).to eq(15)
+      expect(final["suddenDeath"]).to eq(false)
       expect(final["alive"]).to eq(false)
 
       # The total is the fifteen hits plus fifty per 180, an invariant that
       # holds whatever the blind taps happened to land on.
+      expected = final["hits"].sum { |h| h["points"] } + final["bonuses180"] * 50
+      expect(final["total"]).to eq(expected)
+      expect(page).to have_css("#over.visible")
+    end
+  end
+
+  describe "sudden death" do
+    def extra_steps(visit)
+      page.evaluate_script("window.Darts.rules.extraSweepSteps(#{visit})")
+    end
+
+    # The whole reason no scores need resetting. Every dart of the card runs at
+    # the card's own sweep speed and starts from the same edge, so a score thrown
+    # last month was thrown under exactly these rules.
+    it "leaves the card of fifteen exactly as it was" do
+      current = state
+      expect(current["suddenDeath"]).to eq(false)
+      expect(current["extraVisit"]).to eq(0)
+      expect(current["sweepSteps"]).to eq(current["config"]["sweepSteps"])
+      expect(current["sweepSteps"]).to eq(60)
+
+      # And it is recitable: every position it can be frozen on lies on the grid
+      # that starts at the far edge and steps by the card's own speed. Reading
+      # the very first frame is a race (this asserted sweep == -range and caught
+      # it three frames in), so this checks the invariant instead of the instant.
+      range = current["config"]["range"]
+      move = 2 * range / current["config"]["sweepSteps"]
+      6.times do
+        offset = (state["sweep"] + range) / move
+        expect(offset - offset.round).to be_within(0.001).of(0)
+        sleep 0.05
+      end
+    end
+
+    it "only opens above a threshold no existing score reached" do
+      expect(page.evaluate_script("window.Darts.rules.suddenDeathFrom()")).to eq(1000)
+      expect(state["config"]["suddenDeathFrom"]).to eq(1000)
+    end
+
+    # A coarser grid of reachable stops is what makes an extra visit hard: fewer
+    # of them land inside the treble ring at all. Measured on the fixed sweep,
+    # coarser is NOT reliably harder, because whether a stop lands in the ring is
+    # an alignment coincidence (30 steps leaves as much room as 60, while 36 and
+    # 40 leave none). The random start in sudden death is what averages that
+    # coincidence out, which is why both halves of the mechanic are needed.
+    it "coarsens the grid visit by visit, down to a floor" do
+      steps = (1..12).map { |v| extra_steps(v) }
+
+      expect(steps.first).to be < 60
+      expect(steps.each_cons(2).all? { |a, b| b <= a }).to eq(true)
+      expect(steps.first).to be > steps[5]
+      expect(steps.last).to eq(16)
+      expect(extra_steps(50)).to eq(16)
+    end
+
+    # The property the fix exists for: the old maximum stops being a ceiling.
+    # This drives a real perfect run rather than asserting about one, because the
+    # only reason any of this is needed is that a real perfect run is achievable.
+    it "carries a perfect card past the old maximum and still ends on its own" do
+      page.execute_script(<<~JS)
+        (function () {
+          const stage = document.getElementById("stage");
+          const TREBLE_MID = -(0.5824 + 0.6294) / 2;
+          window.__seenSteps = [];
+          window.__t = setInterval(function () {
+            const s = window.Darts.state();
+            if (!s.alive) { clearInterval(window.__t); window.__over = true; return; }
+            if (s.phase === "result") { return; }
+            if (window.__seenSteps.indexOf(s.sweepSteps) === -1) {
+              window.__seenSteps.push(s.sweepSteps);
+            }
+            const move = (2 * s.config.range) / s.sweepSteps;
+            const want = s.phase === "aimX" ? 0 : TREBLE_MID;
+            if (Math.abs(s.sweep - want) <= move / 2) {
+              stage.dispatchEvent(new PointerEvent("pointerdown", {
+                clientX: 10, clientY: 10, pointerId: 1, pointerType: "touch",
+                bubbles: true, cancelable: true
+              }));
+            }
+          }, 4);
+        })();
+      JS
+
+      # A perfect card is 1150 and always opens sudden death; how deep it then
+      # goes varies, so this waits on the run ending rather than on a score.
+      # Polls a flag rather than the whole state object: serialising every field
+      # hundreds of times was most of this spec's runtime.
+      600.times do
+        break if page.evaluate_script("window.__over === true")
+        sleep 0.1
+      end
+
+      final = state
+      expect(final["alive"]).to eq(false)
+      expect(final["suddenDeath"]).to eq(true)
+      expect(final["dartsThrown"]).to be > 15
+      expect(final["total"]).to be > 1150
+
+      # Extra darts came in whole visits, and the run ended on one that was not a
+      # maximum. That is the stopping rule, not a timeout.
+      expect((final["dartsThrown"] - 15) % 3).to eq(0)
+      last_visit = final["hits"].last(3).map { |h| h["points"] }
+      expect(last_visit).not_to eq([60, 60, 60])
+
+      # The grid really did coarsen as it went.
+      seen = page.evaluate_script("window.__seenSteps")
+      expect(seen.first).to eq(60)
+      expect(seen.length).to be > 1
+      expect(seen.max).to eq(60)
+
+      # The total is still the hits plus fifty per maximum, sudden death included.
       expected = final["hits"].sum { |h| h["points"] } + final["bonuses180"] * 50
       expect(final["total"]).to eq(expected)
       expect(page).to have_css("#over.visible")
