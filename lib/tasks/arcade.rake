@@ -115,13 +115,19 @@ ARCADE_GAMES = [
     thumbnail: "intercept.svg",
     score_direction: "high",
     score_unit: "points",
-    # Urgent, and deliberately crude: the standing record is 479,200 against a
-    # ceiling of 500,000, so the next good run would have been thrown out. No
-    # honest ceiling exists yet, because every difficulty knob stops moving by
-    # wave 26 while points per kill keep climbing with the wave number, so score
-    # is unbounded in a long enough run. Held high until the curve keeps rising
-    # and a real bound can be measured.
-    max_plausible_score: 10_000_000,
+    # The standing record was 479,200 against a ceiling of 500,000, so the next
+    # good run would have been refused as implausible.
+    #
+    # The curve now rises to wave 78 and the per-kill multiplier stops there, so
+    # clearing every wave with all six cities intact up to that point is worth
+    # 6.7M. Past it the game pays a flat rate for waves that no longer ask more,
+    # which needs roughly fourteen kills per shot to survive at all.
+    #
+    # Set well above that rather than snugly against it. This guard exists to
+    # reject a tampered client posting an absurd number, not to adjudicate
+    # superhuman play, and a false rejection is the worse failure: it throws away
+    # a real run and tells the player their score was fake.
+    max_plausible_score: 25_000_000,
     min_run_seconds: 2,
     position: 9,
   },

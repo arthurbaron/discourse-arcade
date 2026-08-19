@@ -26,6 +26,10 @@
 
   const INCOMING_BASE_SPEED = 0.0021;
   const INCOMING_SPEED_STEP = 0.00022;
+  // Speed is the one knob that cannot rise forever. The counter-missile flies at
+  // COUNTER_SPEED from the ground, so once incoming fire approaches that, nothing
+  // can be reached in time and the game stops being a game. It is held here and
+  // the pressure continues through the knobs below instead.
   const INCOMING_MAX_SPEED = 0.0075;
 
   const COUNTER_SPEED = 0.017;
@@ -43,8 +47,43 @@
   const WAVE_MISSILES_MAX = 24;
   const SPLIT_FROM_WAVE = 3;
 
+  // Reported by players: past a quarter of a million points the game stopped
+  // getting harder. It was true, and worse than it looked. Every knob above
+  // flattened out early (ammo by wave 8, missiles per wave by 9, spawn gap by 13,
+  // speed by 26) while points per kill stayed at 25 x wave, so from wave 27 the
+  // waves were identical forever and paid more each time. Endurance, not skill.
+  //
+  // The second phase fixes that with the knob the game was built around. Its own
+  // design note says ammo is what stops you tapping your way out of trouble, so
+  // pressure continues as the ratio of targets to shots: missiles keep arriving
+  // in greater numbers, more of them split, they arrive closer together, and the
+  // magazine slowly shrinks back. Nothing speeds up, so the late game stays
+  // readable; it just demands more kills per shot, until no chain can keep up.
+  const PHASE_TWO_FROM = 20;
+  const LATE_MISSILES_PER_WAVE = 0.75;
+  const LATE_MISSILES_MAX = 60;
+  const SPLIT_CHANCE_BASE = 0.35;
+  const SPLIT_CHANCE_PER_WAVE = 0.02;
+  const SPLIT_CHANCE_MAX = 0.9;
+  const LATE_GAP_PER_WAVE = 0.25;
+  const GAP_MIN = 7;
+  const AMMO_DRAIN_PER_WAVE = 0.2;
+  const AMMO_FLOOR = 8;
+
   const POINTS_PER_HIT = 25;
   const CITY_BONUS = 100;
+
+  // A kill is worth more the higher the wave, which is right while the waves are
+  // getting harder and wrong the moment they stop. The knobs above run out of
+  // room at wave 78 (ammo is the last one to move), so the multiplier stops
+  // there too. Past that the game pays a flat rate: you can still climb, but you
+  // are no longer paid extra for waves that are not asking more of you. Without
+  // this the reported complaint would just move from wave 26 to wave 78.
+  //
+  // The spec asserts no knob moves after this wave, so retuning the curve
+  // without revisiting this number fails the build rather than quietly
+  // reintroducing paid endurance.
+  const DIFFICULTY_PEAK_WAVE = 78;
 
   // Incoming fire and explosions are hazards, so they keep a fixed warm colour
   // instead of a theme one, for the same reason the defenders in Dribble are red.
@@ -75,15 +114,75 @@
     return Math.min(view.w, view.h);
   }
 
-  function incomingSpeed() {
+  // Every knob is a pure function of the wave, so a spec can walk the whole curve
+  // without playing a single wave. The wrappers below read the live wave.
+  function incomingSpeedAt(w) {
     return Math.min(
       INCOMING_MAX_SPEED,
-      INCOMING_BASE_SPEED + (wave - 1) * INCOMING_SPEED_STEP
+      INCOMING_BASE_SPEED + (w - 1) * INCOMING_SPEED_STEP
     );
   }
 
+  function spawnGapAt(w) {
+    const early = Math.max(14, 52 - w * 3);
+    if (w <= PHASE_TWO_FROM) {
+      return early;
+    }
+    // Keeps closing after the early curve bottoms out, so more of the wave is in
+    // the air at once. This is crowding, not speed: each missile flies as fast as
+    // before, there are simply fewer gaps to pick them off in.
+    const late = early - (w - PHASE_TWO_FROM) * LATE_GAP_PER_WAVE;
+    return Math.max(GAP_MIN, late);
+  }
+
+  function waveMissilesAt(w) {
+    const early = Math.min(WAVE_MISSILES_MAX, WAVE_MISSILES_BASE + w * 2);
+    if (w <= PHASE_TWO_FROM) {
+      return early;
+    }
+    const late = early + (w - PHASE_TWO_FROM) * LATE_MISSILES_PER_WAVE;
+    return Math.min(LATE_MISSILES_MAX, Math.floor(late));
+  }
+
+  function waveAmmoAt(w) {
+    const early = Math.min(AMMO_MAX, AMMO_BASE + w);
+    if (w <= PHASE_TWO_FROM) {
+      return early;
+    }
+    // The magazine gives back what it grew, slowly. Together with the line above
+    // this is the whole of phase two: more to shoot at, less to shoot with.
+    const late = early - (w - PHASE_TWO_FROM) * AMMO_DRAIN_PER_WAVE;
+    return Math.max(AMMO_FLOOR, Math.round(late));
+  }
+
+  function splitChanceAt(w) {
+    if (w < SPLIT_FROM_WAVE) {
+      return 0;
+    }
+    return Math.min(
+      SPLIT_CHANCE_MAX,
+      SPLIT_CHANCE_BASE + Math.max(0, w - PHASE_TWO_FROM) * SPLIT_CHANCE_PER_WAVE
+    );
+  }
+
+  function incomingSpeed() {
+    return incomingSpeedAt(wave);
+  }
+
   function spawnGap() {
-    return Math.max(14, 52 - wave * 3);
+    return spawnGapAt(wave);
+  }
+
+  function waveMissiles() {
+    return waveMissilesAt(wave);
+  }
+
+  function waveAmmo() {
+    return waveAmmoAt(wave);
+  }
+
+  function splitChance() {
+    return splitChanceAt(wave);
   }
 
   function buildCities() {
@@ -113,6 +212,11 @@
     scoreEl.textContent = String(score);
   }
 
+  // What one kill is worth right now.
+  function hitValueAt(w) {
+    return POINTS_PER_HIT * Math.min(w, DIFFICULTY_PEAK_WAVE);
+  }
+
   function finish() {
     alive = false;
     overEl.textContent = "All cities lost";
@@ -124,8 +228,8 @@
 
   function nextWave() {
     wave++;
-    ammo = Math.min(AMMO_MAX, AMMO_BASE + wave);
-    toSpawn = Math.min(WAVE_MISSILES_MAX, WAVE_MISSILES_BASE + wave * 2);
+    ammo = waveAmmo();
+    toSpawn = waveMissiles();
     spawnTimer = 0;
     updateBar();
   }
@@ -158,7 +262,7 @@
       vy: (dy / distance) * speed,
       targetX: target.x,
       // Where it will break into two, if it does.
-      splitAt: splits && wave >= SPLIT_FROM_WAVE && Math.random() < 0.35
+      splitAt: splits && Math.random() < splitChance()
         ? 0.3 + Math.random() * 0.2
         : null,
     });
@@ -285,7 +389,7 @@
 
         if (d <= radius) {
           incoming.splice(j, 1);
-          addScore(POINTS_PER_HIT * wave);
+          addScore(hitValueAt(wave));
           addBlast(missile.x, missile.y);
         }
       }
@@ -432,6 +536,13 @@
   // Read-only, for the specs, same convention as the other games. A spec cannot
   // aim at a moving dot it cannot see, so it reads the incoming tracks and leads
   // them. Reads state and sets nothing.
+  //
+  // Shots already in the air and blasts already open are reported too, and that
+  // is not padding. Without them nothing outside can tell whether a missile is
+  // already dealt with, so any harness double-fires at the same target, runs dry
+  // and loses its cities in the second wave. That made the game unmeasurable,
+  // which is how a difficulty curve that stops rising at wave 26 went unnoticed
+  // until players found it.
   window.Intercept = {
     state() {
       return {
@@ -444,9 +555,40 @@
           y: missile.y,
           vx: missile.vx,
           vy: missile.vy,
+          splitAt: missile.splitAt,
+        })),
+        counters: counters.map((shot) => ({
+          x: shot.x,
+          y: shot.y,
+          targetX: shot.targetX,
+          targetY: shot.targetY,
+          stepsLeft: Math.max(0, (shot.distance - shot.travelled) / COUNTER_SPEED),
+        })),
+        openBlasts: blasts.map((blast) => ({
+          x: blast.x,
+          y: blast.y,
+          radius: blastRadius(blast),
         })),
         blasts: blasts.length,
+        // The difficulty knobs, so a spec can assert the curve keeps moving
+        // rather than infer it from a score.
+        curve: {
+          incomingSpeed: incomingSpeed(),
+          spawnGap: spawnGap(),
+          splitChance: splitChance(),
+          waveMissiles: waveMissiles(),
+          waveAmmo: waveAmmo(),
+        },
       };
+    },
+    rules: {
+      incomingSpeed: incomingSpeedAt,
+      spawnGap: spawnGapAt,
+      splitChance: splitChanceAt,
+      waveMissiles: waveMissilesAt,
+      waveAmmo: waveAmmoAt,
+      hitValue: hitValueAt,
+      difficultyPeakWave: () => DIFFICULTY_PEAK_WAVE,
     },
   };
 

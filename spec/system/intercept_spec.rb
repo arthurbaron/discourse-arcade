@@ -4,6 +4,13 @@
 # would do just as happily if tapping did nothing at all. These check the two
 # things the game is actually about: a led shot destroys a missile, and firing
 # costs ammo you then run out of.
+#
+# And, since players found it before any test did, the difficulty curve. Every
+# knob used to flatten out by wave 26 while points per kill kept climbing with
+# the wave number, so past roughly a quarter of a million points the game paid
+# more and more for waves that never got harder. Nothing here could have caught
+# that: a game that stops escalating still ends and still reports a score. So the
+# curve is exposed as pure functions of the wave and walked directly.
 
 require "rails_helper"
 
@@ -91,5 +98,77 @@ RSpec.describe "Intercept", type: :system do
 
     expect(wait_for("window.Intercept.state().ammo < #{before_ammo}")).to eq(true)
     expect(wait_for("window.Intercept.state().ammo === 0", seconds: 60)).to eq(true)
+  end
+
+  describe "the difficulty curve" do
+    def curve(fn, wave)
+      page.evaluate_script("window.Intercept.rules.#{fn}(#{wave})")
+    end
+
+    def peak
+      page.evaluate_script("window.Intercept.rules.difficultyPeakWave()")
+    end
+
+    # The reported bug, as an assertion. Wave 30 is past every old ceiling, so if
+    # the curve went flat again these would all be equal to wave 20.
+    it "keeps asking for more long after the old ceilings" do
+      expect(curve("waveMissiles", 30)).to be > curve("waveMissiles", 20)
+      expect(curve("splitChance", 30)).to be > curve("splitChance", 20)
+      expect(curve("spawnGap", 30)).to be < curve("spawnGap", 20)
+      expect(curve("waveAmmo", 30)).to be < curve("waveAmmo", 20)
+
+      # And still moving well beyond that.
+      expect(curve("waveMissiles", 50)).to be > curve("waveMissiles", 30)
+      expect(curve("waveAmmo", 50)).to be < curve("waveAmmo", 30)
+    end
+
+    # The pressure is the ratio of things to shoot at against shots to do it
+    # with, which is what the game's own design note says it is about. Speed is
+    # deliberately not the lever: it is held so the late game stays readable.
+    it "raises the kills needed per shot, without speeding anything up" do
+      demand = ->(w) do
+        targets = curve("waveMissiles", w) * (1 + curve("splitChance", w))
+        targets / curve("waveAmmo", w)
+      end
+
+      expect(demand.call(40)).to be > demand.call(20) * 2
+      expect(demand.call(60)).to be > demand.call(40)
+
+      # Speed stops climbing on purpose: past this, incoming fire would approach
+      # the counter-missile's own speed and nothing could be reached in time.
+      expect(curve("incomingSpeed", 60)).to eq(curve("incomingSpeed", 30))
+    end
+
+    # Everything a normal player sees has to be untouched. The complaint was
+    # about the far end of the curve, not the game most people play.
+    it "leaves the first twenty waves exactly as they were" do
+      expected_missiles = (1..20).map { |w| [24, 6 + w * 2].min }
+      expected_ammo = (1..20).map { |w| [20, 12 + w].min }
+      expected_gap = (1..20).map { |w| [14, 52 - w * 3].max }
+
+      expect((1..20).map { |w| curve("waveMissiles", w) }).to eq(expected_missiles)
+      expect((1..20).map { |w| curve("waveAmmo", w) }).to eq(expected_ammo)
+      expect((1..20).map { |w| curve("spawnGap", w) }).to eq(expected_gap)
+      expect((3..20).map { |w| curve("splitChance", w) }).to all(be_within(0.0001).of(0.35))
+    end
+
+    # The self-check. A kill is worth more the higher the wave, which is right
+    # while the waves are getting harder and wrong once they stop. If someone
+    # retunes the curve so a knob moves past the peak without moving the peak,
+    # paid endurance comes back silently. This is what fails instead.
+    it "stops paying extra exactly where it stops getting harder" do
+      peak_wave = peak
+
+      %w[waveMissiles waveAmmo spawnGap splitChance].each do |fn|
+        at_peak = curve(fn, peak_wave)
+        expect(curve(fn, peak_wave + 20)).to eq(at_peak),
+                                            "#{fn} still moves past wave #{peak_wave}, " \
+                                            "so the score multiplier should not stop there"
+      end
+
+      # Rising up to the peak, flat after it.
+      expect(curve("hitValue", peak_wave)).to be > curve("hitValue", peak_wave - 10)
+      expect(curve("hitValue", peak_wave + 50)).to eq(curve("hitValue", peak_wave))
+    end
   end
 end

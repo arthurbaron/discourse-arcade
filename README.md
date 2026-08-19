@@ -86,7 +86,11 @@ Most games expose a small read-only object so a spec can check the thing that
   which is drawn on the canvas and so invisible to a spec otherwise.
 - `window.Recall.state()` for the sequence, since a spec cannot watch pads flash.
 - `window.Intercept.state()` for the incoming tracks, so a spec can lead a shot
-  the way a player has to.
+  the way a player has to, plus the shots already in the air, the open blasts and
+  the live difficulty knobs. Without the first two nothing can tell whether a
+  missile is already dealt with, which made the game unmeasurable; without the
+  last, a curve that stopped rising could only be found by playing for ten
+  minutes, and a player found it first.
 - `window.Debris.state()` to steer at a real rock. A stationary ship auto-fires
   and destroys the rocks that would have hit it, so a spec that waits to be hit
   can wait forever, and one did.
@@ -365,6 +369,49 @@ position never hits anything and would pass while the game was broken.
 
 A destroyed missile explodes in turn, so a well placed blast unzips a cluster.
 That chain is where the scores come from.
+
+**And it stopped getting harder, which players found before any test did.** The
+report was that past a quarter of a million points it turned into plain sailing.
+It was true and slightly worse than described. Every knob flattened out early:
+ammo by wave 8, missiles per wave by 9, spawn gap by 13, incoming speed by 26. So
+from wave 27 the waves were byte-for-byte identical forever, while a kill still
+paid 25 x the wave number, which kept climbing. The game paid more and more for
+waves that asked less and less, which is endurance dressed up as skill.
+
+Two things had made it invisible. The first is that no test could catch it: a game
+that stops escalating still ends and still reports a score, which is all the
+contract spec ever checked. The curve is now exposed as pure functions of the wave
+and walked directly, the same treatment Stack's slice and margin get. The second
+is that the game was not measurable at all. `state()` reported incoming missiles
+but not the player's own shots in flight or the blasts already open, so nothing
+outside could tell whether a target was already dealt with; a harness written
+against it double-fires, runs dry and loses its cities in the second wave, which
+is exactly what happened on the first attempt to measure this. Those are reported
+now.
+
+Pressure continues through the knob the game was already built around. Its own
+design note says ammo is what stops you tapping your way out of trouble, so from
+wave 20 the ratio of targets to shots keeps tightening: more missiles per wave,
+more of them splitting, arriving closer together, and the magazine slowly giving
+back what it grew. Nothing accelerates. Speed is deliberately held, because
+incoming fire approaching the counter-missile's own speed cannot be reached in
+time no matter how well you play, and an unreadable game is not a hard one. The
+result is a demand that rises from 1.6 kills per shot at wave 20 to 4.3 at wave
+40 and 14 at wave 70, all at the same missile speed.
+
+The multiplier now stops where the difficulty does, at wave 78. Otherwise the
+complaint would simply move: flat waves paying an ever larger rate is the bug,
+wherever it sits. A spec asserts that no knob still moves past that wave, so
+retuning the curve without revisiting the number fails the build instead of
+quietly reintroducing paid endurance.
+
+`max_plausible_score` was the urgent part. It sat at 500,000 against a standing
+record of 479,200, so the next good run would have been refused as implausible and
+thrown away, the same silent loss as the play-again bug and about one run from
+happening. Clearing every wave with all six cities up to the difficulty peak is
+worth 6.7M, and the ceiling is set at 25M rather than snugly against that: this
+guard exists to reject a tampered client posting an absurd number, not to
+adjudicate superhuman play, and a false rejection is the worse failure of the two.
 
 ## Dying in Debris used to cost two lives
 
