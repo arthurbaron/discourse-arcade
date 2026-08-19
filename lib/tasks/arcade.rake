@@ -115,7 +115,13 @@ ARCADE_GAMES = [
     thumbnail: "intercept.svg",
     score_direction: "high",
     score_unit: "points",
-    max_plausible_score: 500_000,
+    # Urgent, and deliberately crude: the standing record is 479,200 against a
+    # ceiling of 500,000, so the next good run would have been thrown out. No
+    # honest ceiling exists yet, because every difficulty knob stops moving by
+    # wave 26 while points per kill keep climbing with the wave number, so score
+    # is unbounded in a long enough run. Held high until the curve keeps rising
+    # and a real bound can be measured.
+    max_plausible_score: 10_000_000,
     min_run_seconds: 2,
     position: 9,
   },
