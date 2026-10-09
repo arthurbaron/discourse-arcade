@@ -19,6 +19,9 @@ export default class ArcadeGameController extends Controller {
   @tracked yourBest = null;
   @tracked yourRank = null;
   @tracked canModerate = false;
+  @tracked period = null;
+  @tracked allTimeRecord = null;
+  @tracked lastMonthWinner = null;
 
   setup(model) {
     this.game = model.game;
@@ -26,10 +29,30 @@ export default class ArcadeGameController extends Controller {
     this.yourBest = model.your_best;
     this.yourRank = model.your_rank;
     this.canModerate = model.can_moderate || false;
+    this.period = model.period || null;
+    this.allTimeRecord = model.all_time_record || null;
+    this.lastMonthWinner = model.last_month_winner || null;
   }
 
   get recordToBeat() {
     return this.leaderboard[0] || null;
+  }
+
+  // Only shown when it adds something. If this month's leader holds it, or
+  // the board is empty and last month's winner (already named above) holds it,
+  // the line would repeat the sentence right before it.
+  get showAllTimeRecord() {
+    const record = this.allTimeRecord;
+    if (!record) {
+      return false;
+    }
+    if (record.id === this.recordToBeat?.id) {
+      return false;
+    }
+    if (!this.hasScores && record.id === this.lastMonthWinner?.id) {
+      return false;
+    }
+    return true;
   }
 
   get hasScores() {
@@ -42,6 +65,9 @@ export default class ArcadeGameController extends Controller {
     this.leaderboard = payload.leaderboard || this.leaderboard;
     this.yourBest = payload.your_best;
     this.yourRank = payload.your_rank;
+    if (payload.all_time_record !== undefined) {
+      this.allTimeRecord = payload.all_time_record;
+    }
 
     // Replaced rather than mutated, so the template picks the new count up.
     if (payload.plays_count !== undefined) {

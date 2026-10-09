@@ -7,8 +7,22 @@ export default <template>
       {{! A real emoji rather than a sprite icon, to match Bookie's heading. }}
       <h1><span class="arcade-head-emoji">🎮</span> Arcade</h1>
       <p class="arcade-intro">
-        Beat the high score. Every score is tied to your account.
+        {{#if @controller.period}}
+          Leaderboards for
+          <strong>{{@controller.period.label}}</strong>. They reset on the 1st,
+          and every month counts towards the season.
+        {{else}}
+          Beat the high score. Every score is tied to your account.
+        {{/if}}
       </p>
+      {{#if @controller.period}}
+        <LinkTo @route="arcade.season" class="arcade-season-link">
+          {{icon "trophy"}}
+          Season
+          {{@controller.period.season_label}}
+          standings
+        </LinkTo>
+      {{/if}}
     </div>
 
     {{#if @controller.hasGames}}

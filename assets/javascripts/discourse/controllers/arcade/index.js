@@ -6,9 +6,11 @@ export default class ArcadeIndexController extends Controller {
   @service currentUser;
 
   @tracked games = [];
+  @tracked period = null;
 
   setup(model) {
     this.games = model.games || [];
+    this.period = model.period || null;
   }
 
   get hasGames() {

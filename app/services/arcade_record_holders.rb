@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
-# Who currently holds first place on each game.
+# Who currently holds first place on each game, this month.
+#
+# The trophy next to a poster's name follows the monthly board, so it changes
+# hands every month and anyone can win one, rather than belonging forever to
+# whoever set an untouchable score in the first week. The all-time records still
+# show on each game's page; they just no longer decide who wears the trophy.
 #
 # The point of this class is that the answer is tiny and global: with a handful
 # of games, at most a handful of people hold anything at all, forum wide. So it
@@ -16,7 +21,13 @@ class ArcadeRecordHolders
 
   # { user_id => ["2048", "Penalty"] }
   def self.map
-    Discourse.cache.fetch(CACHE_KEY, expires_in: CACHE_TTL) { build }
+    Discourse.cache.fetch(cache_key, expires_in: CACHE_TTL) { build }
+  end
+
+  # Keyed by month, so the 1st takes everyone's trophy away at midnight rather
+  # than up to fifteen minutes later, when nothing would have cleared it.
+  def self.cache_key
+    "#{CACHE_KEY}:#{ArcadePeriod.key(ArcadePeriod.current_month)}"
   end
 
   def self.build
@@ -34,7 +45,9 @@ class ArcadeRecordHolders
   end
 
   def self.clear!
-    Discourse.cache.delete(CACHE_KEY)
+    Discourse.cache.delete(cache_key)
+    # Anything that moves a monthly placing can move the season table too.
+    ArcadeSeason.clear!
   end
 
   def self.for_user(user_id)

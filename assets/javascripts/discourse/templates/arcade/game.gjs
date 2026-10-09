@@ -25,13 +25,13 @@ export default <template>
 
         <div class="arcade-stats">
           <div class="arcade-stat">
-            <span class="arcade-stat-label">Your best</span>
+            <span class="arcade-stat-label">Best this month</span>
             <span class="arcade-stat-value">
               {{if @controller.yourBest @controller.yourBest "-"}}
             </span>
           </div>
           <div class="arcade-stat">
-            <span class="arcade-stat-label">Your rank</span>
+            <span class="arcade-stat-label">Rank this month</span>
             <span class="arcade-stat-value">
               {{if @controller.yourRank @controller.yourRank "-"}}
             </span>
@@ -46,11 +46,16 @@ export default <template>
       </div>
 
       <aside class="arcade-game-side">
-        <h2 class="arcade-side-title">Leaderboard</h2>
+        <h2 class="arcade-side-title">
+          Leaderboard
+          {{#if @controller.period}}
+            <span class="arcade-side-period">{{@controller.period.label}}</span>
+          {{/if}}
+        </h2>
 
         {{#if @controller.recordToBeat}}
           <p class="arcade-record-line">
-            Record to beat
+            To beat this month
             <strong>{{@controller.recordToBeat.score}}</strong>
             by
             {{@controller.recordToBeat.username}}
@@ -85,7 +90,26 @@ export default <template>
             {{/each}}
           </ol>
         {{else}}
-          <p class="arcade-empty">No scores yet. Be the first.</p>
+          <p class="arcade-empty">No scores yet this month. Be the first.</p>
+          {{#if @controller.lastMonthWinner}}
+            <p class="arcade-record-line">
+              Last month
+              {{@controller.lastMonthWinner.username}}
+              won with
+              <strong>{{@controller.lastMonthWinner.score}}</strong>
+            </p>
+          {{/if}}
+        {{/if}}
+
+        {{! Outlives every reset, so a great score stays in view after its month
+        is over. Only shown when it is not simply this month's leader again. }}
+        {{#if @controller.showAllTimeRecord}}
+          <p class="arcade-record-line arcade-all-time">
+            All-time record
+            <strong>{{@controller.allTimeRecord.score}}</strong>
+            by
+            {{@controller.allTimeRecord.username}}
+          </p>
         {{/if}}
       </aside>
     </div>

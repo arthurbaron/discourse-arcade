@@ -3,8 +3,10 @@
 An arcade of self-hosted HTML5 games with per-game leaderboards, tied to real
 forum accounts.
 
-- `/arcade` lists the games, your best score per game, and who holds the record.
-- `/arcade/g/:slug` is the game page: the game itself plus the top 10.
+- `/arcade` lists the games with this month's best: yours, and the leader's.
+- `/arcade/g/:slug` is the game page: the game itself, this month's top 10 and
+  the all-time record.
+- `/arcade/season` is the season table, built from every month so far.
 
 ## Setup
 
@@ -151,6 +153,52 @@ same loader snippet (copy it from any game). And nothing under `public/` may
 ever be referenced by a bare URL from the app without a stamp: not scripts,
 not stylesheets, not thumbnails. `spec/system/asset_stamp_spec.rb` walks the
 whole chain in a real browser.
+
+## Monthly boards and the season
+
+Asked for because play was dropping off: most records had been set early and
+nobody could reach them any more, so there was little reason to come back. Every
+leaderboard now runs per calendar month and resets on the 1st, and the months add
+up to a season that follows the football season, August to July.
+
+**A reset is a filter, never a deletion.** Every score keeps its date and stays in
+the table; "this month" is a time window over it (`ArcadePeriod`). Nothing about a
+month rolling over is irreversible, the history the season needs already exists,
+and the records people worked for stay alive: each game page shows the all-time
+record under this month's board. Without that line the launch reads, to whoever
+set a record, as "your record is gone". It is hidden only when it would repeat the
+line above it (this month's leader holds it, or last month's winner does on an
+empty board). An empty board on the 1st names last month's winner instead of just
+saying "no scores", so the reset explains itself.
+
+Month boundaries sit in one fixed zone, Europe/Amsterdam. A board is the same list
+for everyone, so where a month starts cannot depend on who is looking. That is the
+opposite of the stats screen, which buckets days in the viewer's own zone.
+
+**The season scores placings, not points** (`ArcadeSeason`). The games score on
+scales thousands of times apart: one middling Intercept run outweighs everything
+anyone could score in Penalty, Darts and Snake together, so a points total would
+just be the Intercept board. Instead, every game, every month, the top five earn
+10, 7, 5, 3 and 1, the way a racing championship works. That rewards playing
+widely and coming back every month, and it means a rule change mid-season (like
+Intercept's difficulty curve or Darts' sudden death) distorts nothing, because each
+month is judged inside its own rules. Ties on points go to more month wins, then
+more podiums.
+
+A game only pays out in a month where at least three people played it. A podium
+needs three, and without the rule whoever opened a quiet game once would take ten
+points for turning up. Points earned stay earned: every game counts whether or not
+it is switched on now. Each month is ranked with the very same `leaderboard`
+method the game page uses, so the season table can never disagree with a monthly
+board about who won.
+
+The trophy next to a poster's name follows the monthly board too. It changes hands
+every month, and its cache is keyed by month so the 1st takes it away at midnight
+rather than whenever the cache next expired.
+
+A score posted to a game also now separates two kinds of news: a first score of
+the month is always the month's best, so it is announced as "Your best this month"
+and only a genuine all-time best gets "New personal best".
 
 ## How scores are trusted
 

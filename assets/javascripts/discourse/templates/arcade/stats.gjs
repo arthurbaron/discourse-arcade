@@ -85,7 +85,7 @@ export default <template>
 
       {{#if @controller.trophies}}
         <section class="arcade-stat-block">
-          <h2>Most records held</h2>
+          <h2>Most games led this month</h2>
           <ol class="arcade-trophy-list">
             {{#each @controller.trophies as |holder|}}
               <li class="arcade-trophy-row">

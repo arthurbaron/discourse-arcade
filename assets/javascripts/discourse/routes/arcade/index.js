@@ -4,7 +4,7 @@ import DiscourseRoute from "discourse/routes/discourse";
 export default class ArcadeIndexRoute extends DiscourseRoute {
   async model() {
     const data = await ajax("/arcade/api/games.json");
-    return { games: data.games || [] };
+    return { games: data.games || [], period: data.period || null };
   }
 
   titleToken() {

@@ -40,6 +40,35 @@
   font-size: 0.95em;
 }
 
+.arcade-intro strong {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Same quiet pill as the admin statistics link, but in the flow under the
+   intro: the season table is for everyone, so it sits where everyone reads. */
+.arcade-season-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-top: 0.75em;
+  padding: 0.35em 0.75em;
+  border: 1px solid var(--primary-low);
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--primary-medium);
+}
+
+.arcade-season-link:hover {
+  border-color: var(--primary-medium);
+  color: var(--primary);
+}
+
+.arcade-season-link .d-icon {
+  width: 0.9em;
+  height: 0.9em;
+}
+
 /* ── Game grid ─────────────────────────────────────────── */
 
 .arcade-grid {
@@ -296,6 +325,74 @@
 
 .arcade-record-line strong {
   color: var(--primary);
+}
+
+.arcade-side-period {
+  font-size: 0.8em;
+  font-weight: normal;
+  color: var(--primary-medium);
+}
+
+/* Set apart from this month's board, because it is a different kind of fact:
+   it does not reset. */
+.arcade-all-time {
+  margin-top: 1em;
+  padding-top: 0.75em;
+  border-top: 1px solid var(--primary-low);
+}
+
+/* ── Season standings ──────────────────────────────────── */
+
+.arcade-season-page {
+  max-width: 640px;
+}
+
+.arcade-season-months {
+  margin: 0.5em 0 0;
+  font-size: 0.82em;
+  color: var(--primary-medium);
+}
+
+/* The leaderboard row, widened into a grid so the three numbers line up in
+   columns under their header instead of floating at the end of each name.
+   Scoped under the table on purpose: .arcade-lb-row is defined further down
+   this file and its display: flex would otherwise win, which is exactly what
+   the first screenshot showed. */
+.arcade-season-table .arcade-season-row {
+  display: grid;
+  grid-template-columns: 1.4em minmax(0, 1fr) 4em 3.5em 4.5em;
+  gap: 0.55em;
+  align-items: center;
+}
+
+/* Same font size and padding as the rows, because the column widths are in em
+   and would not line up otherwise. The small caps size goes on the labels. */
+.arcade-season-header {
+  padding: 0 0.5em 0.35em;
+  font-size: 0.9em;
+}
+
+.arcade-season-header > span {
+  font-size: 0.8em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary-medium);
+}
+
+.arcade-season-player {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  min-width: 0;
+}
+
+.arcade-season-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.arcade-season-points {
+  font-weight: 600;
 }
 
 .arcade-leaderboard {
@@ -680,6 +777,12 @@
     display: flex;
     justify-content: center;
     margin-top: 1.5em;
+  }
+
+  /* Narrower number columns, so the name keeps room next to its avatar. */
+  .arcade-season-table .arcade-season-row {
+    grid-template-columns: 1.2em minmax(0, 1fr) 3em 2.6em 4em;
+    gap: 0.4em;
   }
 
   /* Four tiles across a phone leaves each number too narrow to read. */

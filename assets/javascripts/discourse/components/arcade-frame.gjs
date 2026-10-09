@@ -24,6 +24,7 @@ export default class ArcadeFrame extends Component {
   @tracked frameSrc = null;
   @tracked lastScore = null;
   @tracked isPersonalBest = false;
+  @tracked isMonthBest = false;
   @tracked error = null;
 
   _token = null;
@@ -84,6 +85,7 @@ export default class ArcadeFrame extends Component {
       this._runCount += 1;
       this.lastScore = null;
       this.isPersonalBest = false;
+      this.isMonthBest = false;
       this.frameSrc = this._buildFrameSrc();
       this.status = "playing";
     } catch (e) {
@@ -159,6 +161,7 @@ export default class ArcadeFrame extends Component {
 
       this.lastScore = payload.score;
       this.isPersonalBest = payload.is_personal_best;
+      this.isMonthBest = payload.is_month_best;
       this.status = "done";
       this.args.onScore?.(payload);
     } catch (e) {
@@ -219,6 +222,8 @@ export default class ArcadeFrame extends Component {
                 {{#if this.isPersonalBest}}
                   <p class="arcade-frame-badge">{{icon "star"}}
                     New personal best</p>
+                {{else if this.isMonthBest}}
+                  <p class="arcade-frame-badge">Your best this month</p>
                 {{/if}}
               {{/if}}
               <button

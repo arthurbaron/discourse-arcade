@@ -277,4 +277,119 @@ RSpec.describe ArcadeController do
       expect(response.status).to eq(404)
     end
   end
+
+  # The board resets on the 1st by looking at a different window. Nothing is
+  # deleted, which is what these check from the outside: last month's score is
+  # gone from this month's board and still very much alive everywhere else.
+  describe "monthly boards" do
+    fab!(:third) { Fabricate(:user) }
+
+    before { freeze_time Time.utc(2026, 10, 15, 12, 0) }
+
+    def backdated(user, value, at:)
+      run = ArcadeRun.issue!(user, game)
+      ArcadeScore.create!(
+        user_id: user.id,
+        arcade_game_id: game.id,
+        arcade_run_id: run.id,
+        score: value,
+        created_at: at,
+      )
+    end
+
+    let(:last_month) { Time.utc(2026, 9, 20, 12, 0) }
+
+    it "shows only this month on the board, and keeps last month and all time" do
+      backdated(rival, 9_000, at: last_month)
+      backdated(player, 300, at: 1.hour.ago)
+
+      sign_in(player)
+      get "/arcade/api/games/#{game.slug}.json"
+      body = response.parsed_body
+
+      expect(body["leaderboard"].map { |e| e["username"] }).to eq([player.username])
+      expect(body["your_best"]).to eq(300)
+      expect(body["your_rank"]).to eq(1)
+
+      expect(body["all_time_record"]["username"]).to eq(rival.username)
+      expect(body["all_time_record"]["score"]).to eq(9_000)
+      expect(body["last_month_winner"]["username"]).to eq(rival.username)
+      expect(body["period"]).to include("key" => "2026-10", "label" => "October 2026")
+    end
+
+    it "gives the card this month's best and this month's leader" do
+      backdated(player, 9_000, at: last_month)
+      backdated(rival, 100, at: 1.hour.ago)
+
+      sign_in(player)
+      get "/arcade/api/games.json"
+      entry = response.parsed_body["games"].find { |g| g["slug"] == game.slug }
+
+      expect(entry["your_best"]).to be_nil
+      expect(entry["record"]["username"]).to eq(rival.username)
+      expect(response.parsed_body["period"]["season_label"]).to eq("2026/27")
+    end
+
+    # A first score of the month is always the month's best, so calling it a
+    # personal best would announce one on the 1st of every month.
+    it "tells a best-this-month apart from a real personal best" do
+      backdated(player, 9_000, at: last_month)
+
+      submit(start_run(as: player), 50)
+      body = response.parsed_body
+      expect(body["is_month_best"]).to eq(true)
+      expect(body["is_personal_best"]).to eq(false)
+
+      submit(start_run(as: player), 9_500)
+      body = response.parsed_body
+      expect(body["is_month_best"]).to eq(true)
+      expect(body["is_personal_best"]).to eq(true)
+      expect(body["all_time_record"]["score"]).to eq(9_500)
+    end
+
+    it "moves the trophy to this month's leader" do
+      backdated(rival, 9_000, at: last_month)
+      backdated(player, 10, at: 1.hour.ago)
+      ArcadeRecordHolders.clear!
+
+      expect(ArcadeRecordHolders.for_user(player.id)).to eq([game.name])
+      expect(ArcadeRecordHolders.for_user(rival.id)).to eq([])
+    end
+  end
+
+  describe "#season" do
+    fab!(:third) { Fabricate(:user) }
+
+    before { freeze_time Time.utc(2026, 10, 15, 12, 0) }
+
+    it "returns the standings and marks your own row" do
+      [[player, 30], [rival, 20], [third, 10]].each do |user, value|
+        run = ArcadeRun.issue!(user, game)
+        ArcadeScore.create!(
+          user_id: user.id,
+          arcade_game_id: game.id,
+          arcade_run_id: run.id,
+          score: value,
+          created_at: 1.hour.ago,
+        )
+      end
+      ArcadeRecordHolders.clear!
+
+      sign_in(rival)
+      get "/arcade/api/season.json"
+      expect(response.status).to eq(200)
+
+      body = response.parsed_body
+      expect(body["label"]).to eq("2026/27")
+      expect(body["standings"].map { |r| [r["username"], r["points"]] }).to eq(
+        [[player.username, 10], [rival.username, 7], [third.username, 5]],
+      )
+      expect(body["standings"].map { |r| r["is_you"] }).to eq([false, true, false])
+    end
+
+    it "is for signed-in members only" do
+      get "/arcade/api/season.json"
+      expect(response.status).to eq(403)
+    end
+  end
 end

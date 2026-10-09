@@ -36,6 +36,8 @@ after_initialize do
     "app/models/arcade_game",
     "app/models/arcade_run",
     "app/models/arcade_score",
+    "app/services/arcade_period",
+    "app/services/arcade_season",
     "app/services/arcade_score_submission",
     "app/services/arcade_record_holders",
     "app/services/arcade_assets_version",
@@ -70,6 +72,7 @@ after_initialize do
     get "/arcade" => "arcade_page#index"
     get "/arcade/g/:slug" => "arcade_page#index"
     get "/arcade/stats" => "arcade_page#index"
+    get "/arcade/season" => "arcade_page#index"
 
     # JSON API. Namespaced under /api so it can never collide with a game slug.
     get "/arcade/api/games" => "arcade#index"
@@ -77,6 +80,7 @@ after_initialize do
     post "/arcade/api/games/:slug/runs" => "arcade#start_run"
     post "/arcade/api/runs/:token" => "arcade#submit_score"
     delete "/arcade/api/scores/:id" => "arcade#destroy_score"
+    get "/arcade/api/season" => "arcade#season"
 
     # Admin JSON lives with the rest of the plugin's API rather than under
     # /admin/plugins, so it can never shadow Discourse's own plugin routes.
