@@ -23,6 +23,51 @@ RSpec.describe "Arcade", type: :system do
     sign_in(player)
   end
 
+  # Waits for a fresh game whose script has loaded, then plays it to game over.
+  #
+  # Both halves of the wait were caught failing a full suite run. #over sits in
+  # the page's static markup, so it exists before game.js does, and keys sent in
+  # that gap reach nothing: the first run could end without a single move. And
+  # Play again keeps the same iframe and only swaps its document, so for a moment
+  # the old, finished game is still there: the second run could see its "game
+  # over", decide it was done, and leave the new game untouched at zero. Waiting
+  # for the frame to merely exist covered neither.
+  def play_until_over
+    within_frame(find(".arcade-frame-canvas")) do
+      ready = false
+      100.times do
+        begin
+          ready =
+            page.evaluate_script(
+              "!!window.Game2048 && !document.getElementById('over').classList.contains('visible')",
+            )
+        rescue Playwright::Error
+          # The frame's document is being replaced mid-check; try again.
+          ready = false
+        end
+        break if ready
+        sleep 0.1
+      end
+      expect(ready).to eq(true)
+
+      page.execute_script(<<~JS)
+        (function () {
+          var dirs = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+          var over = document.getElementById("over");
+          var moves = 0;
+          while (moves < 5000 && !over.classList.contains("visible")) {
+            window.dispatchEvent(
+              new KeyboardEvent("keydown", {
+                key: dirs[Math.floor(Math.random() * 4)],
+              })
+            );
+            moves++;
+          }
+        })();
+      JS
+    end
+  end
+
   it "renders the game grid and opens a game page" do
     visit "/arcade"
 
@@ -50,23 +95,7 @@ RSpec.describe "Arcade", type: :system do
     expect(page).to have_css(".arcade-frame-canvas")
 
     # Play the game out inside the sandboxed frame until it reports game over.
-    within_frame(find(".arcade-frame-canvas")) do
-      page.execute_script(<<~JS)
-        (function () {
-          var dirs = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
-          var over = document.getElementById("over");
-          var moves = 0;
-          while (moves < 5000 && !over.classList.contains("visible")) {
-            window.dispatchEvent(
-              new KeyboardEvent("keydown", {
-                key: dirs[Math.floor(Math.random() * 4)],
-              })
-            );
-            moves++;
-          }
-        })();
-      JS
-    end
+    play_until_over
 
     # The score goes out over postMessage and then to the server before this
     # appears, so it needs more room than the default wait when the whole suite
@@ -102,23 +131,7 @@ RSpec.describe "Arcade", type: :system do
       find(attempt.zero? ? ".arcade-frame-start" : "button", text: /Play/).click
       expect(page).to have_css(".arcade-frame-canvas")
 
-      within_frame(find(".arcade-frame-canvas")) do
-        page.execute_script(<<~JS)
-          (function () {
-            var dirs = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
-            var over = document.getElementById("over");
-            var moves = 0;
-            while (moves < 5000 && !over.classList.contains("visible")) {
-              window.dispatchEvent(
-                new KeyboardEvent("keydown", {
-                  key: dirs[Math.floor(Math.random() * 4)],
-                })
-              );
-              moves++;
-            }
-          })();
-        JS
-      end
+      play_until_over
 
       # The overlay reappearing is half the bug: without it there is no way back
       # into the game from the game over screen.
