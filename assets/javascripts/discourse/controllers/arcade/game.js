@@ -38,23 +38,6 @@ export default class ArcadeGameController extends Controller {
     return this.leaderboard[0] || null;
   }
 
-  // Only shown when it adds something. If this month's leader holds it, or
-  // the board is empty and last month's winner (already named above) holds it,
-  // the line would repeat the sentence right before it.
-  get showAllTimeRecord() {
-    const record = this.allTimeRecord;
-    if (!record) {
-      return false;
-    }
-    if (record.id === this.recordToBeat?.id) {
-      return false;
-    }
-    if (!this.hasScores && record.id === this.lastMonthWinner?.id) {
-      return false;
-    }
-    return true;
-  }
-
   get hasScores() {
     return this.leaderboard.length > 0;
   }

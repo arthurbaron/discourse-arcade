@@ -102,8 +102,10 @@ export default <template>
         {{/if}}
 
         {{! Outlives every reset, so a great score stays in view after its month
-        is over. Only shown when it is not simply this month's leader again. }}
-        {{#if @controller.showAllTimeRecord}}
+        is over. Always shown, even when this month's leader holds it: it was
+        once hidden in that case to avoid repeating a name, and that left four
+        games with nowhere the record could be found. }}
+        {{#if @controller.allTimeRecord}}
           <p class="arcade-record-line arcade-all-time">
             All-time record
             <strong>{{@controller.allTimeRecord.score}}</strong>

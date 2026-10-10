@@ -65,6 +65,15 @@ export default <template>
                   </span>
                 {{/if}}
               </div>
+
+              {{#if game.all_time_record}}
+                <p class="arcade-card-record">
+                  All-time record
+                  <strong>{{game.all_time_record.score}}</strong>
+                  by
+                  {{game.all_time_record.username}}
+                </p>
+              {{/if}}
             </div>
           </LinkTo>
         {{/each}}

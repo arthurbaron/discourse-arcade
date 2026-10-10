@@ -78,7 +78,7 @@ RSpec.describe "Arcade record flair", type: :system do
     expect(find("#post_1 .names")).to have_text(holder.username)
     expect(find("#post_1 .arcade-record-flair-count")).to have_text("2")
     expect(find("#post_1 .arcade-record-flair")["title"]).to eq(
-      "Top of the arcade this month: Alpha, Beta",
+      "Arcade record holder: Alpha, Beta",
     )
 
     # Second place on one game and nothing on the other earns nothing.

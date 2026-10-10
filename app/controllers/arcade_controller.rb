@@ -44,6 +44,9 @@ class ArcadeController < ApplicationController
                    plays_count: game.plays_count,
                    your_best: best&.score,
                    record: holder ? serialize_entry(holder, 1) : nil,
+                   # The card showed the all-time record before boards went
+                   # monthly, and it stays on the card now they have.
+                   all_time_record: serialize_first(game.leaderboard(limit: 1, within: nil)),
                  }
                end,
            }
@@ -85,11 +88,14 @@ class ArcadeController < ApplicationController
   # GET /arcade/api/season
   def season
     standings = ArcadeSeason.standings
+    mark_you = ->(rows) { rows.map { |row| row.merge(is_you: row[:user_id] == current_user.id) } }
 
+    # The cached table is shared by everyone, so "you" is added per request on a
+    # copy rather than stored in it.
     render json:
              standings.merge(
-               standings:
-                 standings[:standings].map { |row| row.merge(is_you: row[:user_id] == current_user.id) },
+               standings: mark_you.call(standings[:standings]),
+               months: standings[:months].map { |month| month.merge(top: mark_you.call(Array(month[:top]))) },
              )
   end
 

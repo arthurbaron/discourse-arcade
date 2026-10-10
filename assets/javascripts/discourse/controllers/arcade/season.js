@@ -7,6 +7,7 @@ export default class ArcadeSeasonController extends Controller {
   @tracked standings = [];
   @tracked points = [];
   @tracked minPlayers = 3;
+  @tracked monthTop = 5;
 
   setup(model) {
     this.label = model.label;
@@ -14,6 +15,7 @@ export default class ArcadeSeasonController extends Controller {
     this.standings = model.standings || [];
     this.points = model.rules?.points || [];
     this.minPlayers = model.rules?.min_players || 3;
+    this.monthTop = model.rules?.month_top || 5;
   }
 
   get hasStandings() {
@@ -32,6 +34,18 @@ export default class ArcadeSeasonController extends Controller {
 
   get topCount() {
     return this.points.length;
+  }
+
+  // Finished months only, newest first: the most recent result is the one
+  // people come looking for.
+  get pastMonths() {
+    return this.months
+      .filter((month) => !month.current)
+      .map((month) => ({
+        ...month,
+        hasTop: (month.top || []).length > 0,
+      }))
+      .reverse();
   }
 
   get monthsLabel() {

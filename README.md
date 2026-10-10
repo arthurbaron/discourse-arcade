@@ -166,9 +166,10 @@ the table; "this month" is a time window over it (`ArcadePeriod`). Nothing about
 month rolling over is irreversible, the history the season needs already exists,
 and the records people worked for stay alive: each game page shows the all-time
 record under this month's board. Without that line the launch reads, to whoever
-set a record, as "your record is gone". It is hidden only when it would repeat the
-line above it (this month's leader holds it, or last month's winner does on an
-empty board). An empty board on the 1st names last month's winner instead of just
+set a record, as "your record is gone". It is always there, and on the arcade overview each card
+carries it too, under this month's leader. It was briefly hidden whenever this
+month's leader also held it, to avoid repeating a name, and that left games with
+nowhere the record could be found. An empty board on the 1st names last month's winner instead of just
 saying "no scores", so the reset explains itself.
 
 Month boundaries sit in one fixed zone, Europe/Amsterdam. A board is the same list
@@ -192,9 +193,21 @@ it is switched on now. Each month is ranked with the very same `leaderboard`
 method the game page uses, so the season table can never disagree with a monthly
 board about who won.
 
-The trophy next to a poster's name follows the monthly board too. It changes hands
-every month, and its cache is keyed by month so the 1st takes it away at midnight
-rather than whenever the cache next expired.
+Each finished month keeps its top five on the season page, five because that is
+how far the points go in every game: ranked by the points that month earned,
+scored exactly like the season, with a shared fifth place kept rather than broken
+arbitrarily. Without it a month's result was all but
+invisible once the board reset, because the "last month" line on a game page only
+shows while the new month's board is still empty and disappears with the first run.
+The month in progress gets no list; it is the live table already, and a result
+that can still change is not a result.
+
+The trophy next to a poster's name deliberately does not follow the monthly
+board: it stays with the all-time record holders. It was moved to the monthly
+leaders for a day and moved back, because the monthly race already has its home on
+the boards and the season page, and the trophy is the one thing left that marks a
+record nobody has beaten. `ArcadeRecordHolders` passes `within: nil` explicitly,
+since the leaderboard's default is now the current month.
 
 A score posted to a game also now separates two kinds of news: a first score of
 the month is always the month's best, so it is announced as "Your best this month"

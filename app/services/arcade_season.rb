@@ -21,6 +21,13 @@ class ArcadeSeason
   POINTS = [10, 7, 5, 3, 1].freeze
   MIN_PLAYERS = 3
 
+  # Each finished month keeps its own top five on the season page, five because
+  # five is how far the points go in every game. Without it a month's result was
+  # all but invisible once the board reset: the "last month" line only shows on
+  # an empty board, so it vanished with the first run of the new month, and
+  # whoever won September had nowhere it still said so.
+  MONTH_TOP = 5
+
   CACHE_TTL = 15.minutes
 
   def self.standings(season = ArcadePeriod.current_season)
@@ -35,10 +42,16 @@ class ArcadeSeason
     Discourse.cache.delete(cache_key(ArcadePeriod.current_season))
   end
 
+  # Bump whenever the shape of the table changes. Found the hard way in
+  # development: a table cached by the previous code had no per-month list, and
+  # the new controller crashed on it until the entry happened to expire. A
+  # versioned key means new code never reads an entry old code wrote.
+  CACHE_VERSION = 2
+
   # Carries the current month as well, so a month rolling over is a new entry
   # rather than fifteen minutes of last month's "in progress" label.
   def self.cache_key(season)
-    "arcade_season:#{season}:#{ArcadePeriod.key(ArcadePeriod.current_month)}"
+    "arcade_season:v#{CACHE_VERSION}:#{season}:#{ArcadePeriod.key(ArcadePeriod.current_month)}"
   end
 
   def initialize(season)
@@ -47,7 +60,8 @@ class ArcadeSeason
   end
 
   def standings
-    totals = Hash.new { |hash, user_id| hash[user_id] = { points: 0, wins: 0, podiums: 0 } }
+    totals = empty_tally
+    by_month = Hash.new { |hash, month| hash[month] = empty_tally }
     counted = Hash.new(0)
 
     qualifying_pairs.each do |game, month|
@@ -56,34 +70,59 @@ class ArcadeSeason
       game
         .leaderboard(limit: POINTS.length, within: ArcadePeriod.range(month))
         .each_with_index do |entry, place|
-          row = totals[entry.user_id]
-          row[:points] += POINTS[place]
-          row[:wins] += 1 if place == 0
-          row[:podiums] += 1 if place < 3
+          # The same placing counts twice: once towards the season, once towards
+          # its own month, so a month's top five is scored exactly like the season.
+          [totals, by_month[month]].each do |tally|
+            row = tally[entry.user_id]
+            row[:points] += POINTS[place]
+            row[:wins] += 1 if place == 0
+            row[:podiums] += 1 if place < 3
+          end
         end
     end
+
+    # Everyone in any month is also in the season totals, so one lookup covers
+    # the season table and every month.
+    users = User.where(id: totals.keys).index_by(&:id)
 
     {
       season: @season,
       label: ArcadePeriod.season_label(@season),
       months:
         @months.map do |month|
+          current = month == ArcadePeriod.current_month
           {
             key: ArcadePeriod.key(month),
             label: ArcadePeriod.label(month),
-            current: month == ArcadePeriod.current_month,
+            current: current,
             games_counted: counted[month],
+            # Only finished months get one. The month in progress is already the
+            # live table, and a result that can still change is not a result.
+            # Ties on the last place are kept, so a shared fifth shows both.
+            top:
+              (
+                if current
+                  []
+                else
+                  ranked(by_month[month], users).select { |row| row[:rank] <= MONTH_TOP }
+                end
+              ),
           }
         end,
       rules: {
         points: POINTS,
         min_players: MIN_PLAYERS,
+        month_top: MONTH_TOP,
       },
-      standings: ranked(totals),
+      standings: ranked(totals, users),
     }
   end
 
   private
+
+  def empty_tally
+    Hash.new { |hash, user_id| hash[user_id] = { points: 0, wins: 0, podiums: 0 } }
+  end
 
   # Every (game, month) in the season where enough people played, found with one
   # grouped count rather than a leaderboard query per pair. Most pairs on a
@@ -117,9 +156,7 @@ class ArcadeSeason
   # Points first, then most month wins, then most podiums, so a tie on points
   # goes to whoever actually came first more often. Players level on all three
   # share a rank.
-  def ranked(totals)
-    users = User.where(id: totals.keys).index_by(&:id)
-
+  def ranked(totals, users)
     rows =
       totals
         .filter_map do |user_id, row|

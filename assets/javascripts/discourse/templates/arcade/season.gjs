@@ -60,5 +60,44 @@ export default <template>
         people have played it in a month.
       </p>
     {{/if}}
+
+    {{#if @controller.pastMonths}}
+      <section class="arcade-month-tops">
+        <h2 class="arcade-side-title">Top
+          {{@controller.monthTop}}
+          per month</h2>
+        <div class="arcade-month-grid">
+          {{#each @controller.pastMonths as |month|}}
+            <div class="arcade-month-card">
+              <h3 class="arcade-month-title">{{month.label}}</h3>
+              {{#if month.hasTop}}
+                <ol class="arcade-leaderboard">
+                  {{#each month.top as |row|}}
+                    <li class="arcade-lb-row {{if row.is_you 'is-you'}}">
+                      <span class="arcade-lb-rank">{{row.rank}}</span>
+                      <img
+                        class="arcade-avatar"
+                        src={{row.avatar_url}}
+                        alt=""
+                        width="24"
+                        height="24"
+                      />
+                      <span class="arcade-lb-name">{{row.username}}</span>
+                      <span class="arcade-lb-score">{{row.points}} pts</span>
+                    </li>
+                  {{/each}}
+                </ol>
+              {{else}}
+                <p class="arcade-empty">
+                  No game had
+                  {{@controller.minPlayers}}
+                  players this month.
+                </p>
+              {{/if}}
+            </div>
+          {{/each}}
+        </div>
+      </section>
+    {{/if}}
   </div>
 </template>

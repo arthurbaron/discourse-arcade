@@ -220,7 +220,7 @@ RSpec.describe ArcadeSeason do
     expect(months.map { |m| m[:key] }).to eq(%w[2026-08 2026-09 2026-10])
     expect(months.map { |m| m[:current] }).to eq([false, false, true])
     expect(table[:label]).to eq("2026/27")
-    expect(table[:rules]).to eq(points: [10, 7, 5, 3, 1], min_players: 3)
+    expect(table[:rules]).to eq(points: [10, 7, 5, 3, 1], min_players: 3, month_top: 5)
   end
 
   it "is recomputed once a new score clears the cache" do
@@ -232,5 +232,90 @@ RSpec.describe ArcadeSeason do
     ArcadeRecordHolders.clear!
 
     expect(points_for(ann)).to eq(10)
+  end
+
+  describe "each month's top five" do
+    def top(key)
+      table[:months].find { |m| m[:key] == key }[:top]
+    end
+
+    it "gives each finished month its own top five, scored like the season" do
+      snake = make_game("snake", position: 1)
+      stack = make_game("stack", position: 2)
+
+      # September: ann wins snake and is third in stack (15), bob 7 + 10 (17),
+      # cas 5 + 7 (12), dee only plays stack and comes last (3).
+      score(ann, snake, 30, at: in_september)
+      score(bob, snake, 20, at: in_september)
+      score(cas, snake, 10, at: in_september)
+      score(bob, stack, 40, at: in_september)
+      score(cas, stack, 30, at: in_september)
+      score(ann, stack, 20, at: in_september)
+      score(dee, stack, 10, at: in_september)
+
+      rows = top("2026-09")
+      expect(rows.map { |r| [r[:user_id], r[:points], r[:rank]] }).to eq(
+        [[bob.id, 17, 1], [ann.id, 15, 2], [cas.id, 12, 3], [dee.id, 3, 4]],
+      )
+    end
+
+    # A month is judged on its own: August's points do not leak into September's
+    # list, even though both feed the same season total.
+    it "keeps each month separate from the others" do
+      game = make_game("snake")
+      score(ann, game, 30, at: in_august)
+      score(bob, game, 20, at: in_august)
+      score(cas, game, 10, at: in_august)
+
+      score(dee, game, 30, at: in_september)
+      score(eve, game, 20, at: in_september)
+      score(fay, game, 10, at: in_september)
+
+      expect(top("2026-08").map { |r| r[:user_id] }).to eq([ann.id, bob.id, cas.id])
+      expect(top("2026-09").map { |r| r[:user_id] }).to eq([dee.id, eve.id, fay.id])
+    end
+
+    it "keeps a shared fifth place rather than picking one of them" do
+      snake = make_game("snake", position: 1)
+      stack = make_game("stack", position: 2)
+
+      # snake: ann 10, bob 7, cas 5. stack: dee 10, eve 7, fay 5.
+      # Level pairs on everything: ann & dee, bob & eve, cas & fay.
+      [[ann, 30], [bob, 20], [cas, 10]].each { |u, v| score(u, snake, v, at: in_september) }
+      [[dee, 30], [eve, 20], [fay, 10]].each { |u, v| score(u, stack, v, at: in_september) }
+
+      # Six players on five places: the last two are level, so both stay.
+      rows = top("2026-09")
+      expect(rows.map { |r| r[:rank] }).to eq([1, 1, 3, 3, 5, 5])
+      expect(rows.map { |r| r[:user_id] }).to contain_exactly(ann.id, dee.id, bob.id, eve.id, cas.id, fay.id)
+    end
+
+    # The month in progress is the live table already, and a result that can
+    # still change is not a result.
+    it "has no list for the month still in progress" do
+      game = make_game("snake")
+      [[ann, 30], [bob, 20], [cas, 10]].each { |u, v| score(u, game, v, at: in_october) }
+
+      expect(top("2026-10")).to eq([])
+      expect(points_for(ann)).to eq(10)
+    end
+
+    it "is empty for a month where no game reached three players" do
+      game = make_game("snake")
+      score(ann, game, 30, at: in_august)
+      score(bob, game, 20, at: in_august)
+
+      expect(top("2026-08")).to eq([])
+    end
+  end
+
+  # Found in development: a table cached by the previous code lacked the
+  # per-month list, and the season endpoint crashed on it until it expired.
+  it "never reads a table cached under an older shape" do
+    stale = "arcade_season:2026:#{ArcadePeriod.key(ArcadePeriod.current_month)}"
+    Discourse.cache.write(stale, { months: [{ key: "2026-08" }] })
+
+    expect(described_class.cache_key(2026)).not_to eq(stale)
+    expect(table[:months].first).to have_key(:top)
   end
 end

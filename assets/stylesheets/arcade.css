@@ -158,6 +158,19 @@
   color: var(--primary);
 }
 
+/* Same wording and weight as the record line on the game page, so the two read
+   as one fact. A line of text rather than a third chip, so the footer keeps its
+   two chips on one row. */
+.arcade-card-record {
+  margin: 0.6em 0 0;
+  font-size: 0.78em;
+  color: var(--primary-medium);
+}
+
+.arcade-card-record strong {
+  color: var(--primary);
+}
+
 /* The record holder is the hook on a card, so it gets a quiet outline rather
    than a fill. A highlight colour here shouts over the rest of the grid. */
 .arcade-chip-record {
@@ -393,6 +406,31 @@
 
 .arcade-season-points {
   font-weight: 600;
+}
+
+.arcade-month-tops {
+  margin-top: 2.25em;
+}
+
+/* Cards that wrap: two across on a desktop, one under the other on a phone,
+   with no breakpoint of their own. Three across was tried and cut off any
+   name longer than about eight characters. */
+.arcade-month-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25em 1.5em;
+}
+
+.arcade-month-title {
+  margin: 0 0 0.4em;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--primary-medium);
+}
+
+.arcade-month-card .arcade-empty {
+  margin: 0;
+  font-size: 0.82em;
 }
 
 .arcade-leaderboard {

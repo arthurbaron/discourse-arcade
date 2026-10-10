@@ -62,17 +62,10 @@ RSpec.describe "Arcade months and season", type: :system do
     expect(side.find(".arcade-all-time")).to have_text("All-time record 12000 by #{third.username}")
   end
 
-  it "does not name last month's winner twice when they also hold the record" do
-    add_score(rival, 9_000, at: last_month)
-    add_score(third, 100, at: last_month - 2.days)
-
-    visit "/arcade/g/#{game.slug}"
-
-    expect(page).to have_text("Last month #{rival.username} won with 9000")
-    expect(page).to have_no_css(".arcade-all-time")
-  end
-
-  it "does not repeat the all-time record when this month's leader holds it" do
+  # The record has one fixed place on every game page. It was once hidden when
+  # this month's leader held it, to avoid repeating a name, and that left games
+  # with nowhere the record could be found at all.
+  it "always shows the all-time record, even when this month's leader holds it" do
     add_score(rival, 50, at: last_month)
     add_score(player, 400, at: 1.minute.ago)
 
@@ -80,7 +73,21 @@ RSpec.describe "Arcade months and season", type: :system do
 
     expect(page).to have_css(".arcade-lb-row.is-you")
     expect(page).to have_text("To beat this month 400")
-    expect(page).to have_no_css(".arcade-all-time")
+    expect(find(".arcade-all-time")).to have_text("All-time record 400 by #{player.username}")
+  end
+
+  it "keeps the all-time record on the arcade card, under this month's leader" do
+    add_score(rival, 9_000, at: last_month)
+    add_score(player, 400, at: 1.minute.ago)
+    ArcadeRecordHolders.clear!
+
+    visit "/arcade"
+
+    card = find(".arcade-card", text: game.name)
+    chip = card.find(".arcade-chip-record")
+    expect(chip).to have_text(player.username)
+    expect(chip).to have_text("400")
+    expect(card.find(".arcade-card-record")).to have_text("All-time record 9000 by #{rival.username}")
   end
 
   it "names the month on the arcade and leads to the season table" do
@@ -112,5 +119,23 @@ RSpec.describe "Arcade months and season", type: :system do
 
     expect(page).to have_text("No standings yet")
     expect(page).to have_no_css(".arcade-season-table")
+  end
+
+  it "shows last month's top five on the season page" do
+    [[rival, 30], [player, 20], [third, 10]].each { |user, value| add_score(user, value, at: last_month) }
+    ArcadeRecordHolders.clear!
+
+    visit "/arcade/season"
+
+    card = find(".arcade-month-card", text: ArcadePeriod.label(ArcadePeriod.previous_month))
+    rows = card.all(".arcade-lb-row")
+    expect(rows.map { |row| row.find(".arcade-lb-name").text }).to eq(
+      [rival.username, player.username, third.username],
+    )
+    expect(rows[0]).to have_text("10 pts")
+    expect(rows[1][:class]).to include("is-you")
+
+    # This month has started but is not a result yet, so it gets no card.
+    expect(page).to have_no_css(".arcade-month-card", text: ArcadePeriod.label(ArcadePeriod.current_month))
   end
 end

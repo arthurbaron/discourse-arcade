@@ -2,8 +2,8 @@ import Component from "@glimmer/component";
 import getURL from "discourse/lib/get-url";
 import icon from "discourse/ui-kit/helpers/d-icon";
 
-// A trophy and a count next to the name of anyone currently in first place on an
-// arcade game this month. One glyph plus a number rather than one glyph per record:
+// A trophy and a count next to the name of anyone holding an arcade game's
+// all-time record. One glyph plus a number rather than one glyph per record:
 // the post header is already a crowded line, and a fixed width keeps it from
 // pushing the timestamp around on a phone.
 //
@@ -25,7 +25,7 @@ export default class ArcadeRecordFlair extends Component {
   }
 
   get title() {
-    return `Top of the arcade this month: ${this.records.join(", ")}`;
+    return `Arcade record holder: ${this.records.join(", ")}`;
   }
 
   <template>

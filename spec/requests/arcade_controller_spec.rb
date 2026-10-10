@@ -327,6 +327,8 @@ RSpec.describe ArcadeController do
 
       expect(entry["your_best"]).to be_nil
       expect(entry["record"]["username"]).to eq(rival.username)
+      expect(entry["all_time_record"]["username"]).to eq(player.username)
+      expect(entry["all_time_record"]["score"]).to eq(9_000)
       expect(response.parsed_body["period"]["season_label"]).to eq("2026/27")
     end
 
@@ -347,13 +349,15 @@ RSpec.describe ArcadeController do
       expect(body["all_time_record"]["score"]).to eq(9_500)
     end
 
-    it "moves the trophy to this month's leader" do
+    # The trophy marks a record nobody has beaten, so a month resetting never
+    # takes it away. This month's leader gets the top of the board instead.
+    it "keeps the trophy with the all-time record holder" do
       backdated(rival, 9_000, at: last_month)
       backdated(player, 10, at: 1.hour.ago)
       ArcadeRecordHolders.clear!
 
-      expect(ArcadeRecordHolders.for_user(player.id)).to eq([game.name])
-      expect(ArcadeRecordHolders.for_user(rival.id)).to eq([])
+      expect(ArcadeRecordHolders.for_user(rival.id)).to eq([game.name])
+      expect(ArcadeRecordHolders.for_user(player.id)).to eq([])
     end
   end
 

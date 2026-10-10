@@ -1,11 +1,12 @@
 # frozen_string_literal: true
 
-# Who currently holds first place on each game, this month.
+# Who holds the all-time record on each game.
 #
-# The trophy next to a poster's name follows the monthly board, so it changes
-# hands every month and anyone can win one, rather than belonging forever to
-# whoever set an untouchable score in the first week. The all-time records still
-# show on each game's page; they just no longer decide who wears the trophy.
+# The trophy next to a poster's name stays with the all-time records, even though
+# the boards themselves now run per month. It was moved to the monthly leaders
+# for a day and moved back on purpose: the monthly race has its own home on the
+# boards and the season page, and the trophy is the one thing that still marks a
+# record nobody has beaten.
 #
 # The point of this class is that the answer is tiny and global: with a handful
 # of games, at most a handful of people hold anything at all, forum wide. So it
@@ -21,20 +22,16 @@ class ArcadeRecordHolders
 
   # { user_id => ["2048", "Penalty"] }
   def self.map
-    Discourse.cache.fetch(cache_key, expires_in: CACHE_TTL) { build }
-  end
-
-  # Keyed by month, so the 1st takes everyone's trophy away at midnight rather
-  # than up to fifteen minutes later, when nothing would have cleared it.
-  def self.cache_key
-    "#{CACHE_KEY}:#{ArcadePeriod.key(ArcadePeriod.current_month)}"
+    Discourse.cache.fetch(CACHE_KEY, expires_in: CACHE_TTL) { build }
   end
 
   def self.build
     holders = {}
 
     ArcadeGame.listed.each do |game|
-      leader = game.leaderboard(limit: 1).first
+      # within: nil is the all-time board. Without it this would follow the
+      # leaderboard's default, which is the current month.
+      leader = game.leaderboard(limit: 1, within: nil).first
       next if leader.nil?
 
       holders[leader.user_id] ||= []
@@ -45,8 +42,9 @@ class ArcadeRecordHolders
   end
 
   def self.clear!
-    Discourse.cache.delete(cache_key)
-    # Anything that moves a monthly placing can move the season table too.
+    Discourse.cache.delete(CACHE_KEY)
+    # Every path that adds or pulls a score comes through here, and any of them
+    # can move a monthly placing, so the season table goes too.
     ArcadeSeason.clear!
   end
 
